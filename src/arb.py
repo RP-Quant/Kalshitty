@@ -4,6 +4,7 @@ from util import load_private_key_from_file, filter_digits, calc_fees
 from pprint import pprint
 from bisect import bisect_left
 import uuid
+import time
 
 class Arbitrage:
     def __init__(self, api_base, key_id, private_key):
@@ -57,31 +58,57 @@ class Arbitrage:
                     continue
 
             if v + prefix_sum[position] < 100:
-                total_fees = calc_fees(v/100)
-                for i in range(position):
-                    total_fees += calc_fees(btc_range_prices[range_ends[i]]/100)
-
-                if 1:#total_fees < 100-(v+prefix_sum[position]):
-                    print(f'arbitrage found at {k}: upper: {v}, lower: {prefix_sum[position]}. Projected profit margin: {100-(v+prefix_sum[position])}')
-                    arbs.append((self.above_tickers[k], [self.below_tickers[range_ends[position-i-1]] for i in range(position)]))
+                print(f'arbitrage found at {k}: upper: {v}, lower: {prefix_sum[position]}. Projected profit margin: {100-(v+prefix_sum[position])}')
+                arbs.append(((self.above_tickers[k], v), [(self.below_tickers[range_ends[position-i-1]], btc_range_prices[range_ends[position-i-1]]) for i in range(position)]))
 
         return arbs
+    
+    def make_orders(self, orders):
+        for ticker, amount in orders:
+            order_params = {'ticker':ticker,
+                        'client_order_id':str(uuid.uuid4()),
+                        'type':'market',
+                        'action':'buy',
+                        'side':self.side,
+                        'count':amount}
+            self.exchange_client.create_order(**order_params)
     
     #getting the amount of orders for both
     def parse_orderbook(self):
         arbs = self.arb_search()
-        pprint(arbs)
+        #pprint(arbs)
         orders = []
 
         for above, belows in arbs:
-            above_asks = self.exchange_client.get_orderbook(ticker=above, depth=32)["orderbook"]["no"][0][-1]
-            min_below_asks = min([self.exchange_client.get_orderbook(ticker=below, depth=32)["orderbook"]["no"][0][-1] for below in belows])
-            final_orders = min(above_asks, min_below_asks)
-            orders.append((above, final_orders))
+            above_ticker, above_price = above
+            above_asks = self.exchange_client.get_orderbook(ticker=above_ticker, depth=32)["orderbook"]["no"][0][-1]
+            min_below_asks = float("inf")
+            total_below_price = 0
             for below in belows:
-                orders.append((below, final_orders))
+                below_ticker, below_price = below
+                total_below_price += below_price
+                min_below_asks = min(self.exchange_client.get_orderbook(ticker=below_ticker, depth=32)["orderbook"]["no"][0][-1], min_below_asks)
+            portfolio_balance = self.exchange_client.get_balance()["balance"]
+            final_orders = min(min(above_asks, min_below_asks), portfolio_balance//(total_below_price+above_price))
 
-        return orders
+            total_fees = calc_fees(above_price/100, final_orders)
+            for below in belows:
+                _, below_price = below
+                total_fees += calc_fees(below_price/100, final_orders)
+
+            if total_fees < 100-(total_below_price+above_price):
+                orders.append((above, final_orders))
+                for below in belows:
+                    below_ticker, below_price = below
+                    orders.append((below, final_orders))
+
+            print(f'profit: {100-(total_below_price+above_price)}, fees: {total_fees}, shares attempted: {final_orders}')
+            return orders
+        
+    def run(self):
+        while 1:
+            print(self.parse_orderbook())
+            time.sleep(5)
         
 
 private_key = load_private_key_from_file("src/kalshi.key")
@@ -89,4 +116,4 @@ api_base = "https://api.elections.kalshi.com/trade-api/v2"
 
 arb = Arbitrage(api_base=api_base, key_id=KEY_ID, private_key=private_key)
 
-pprint(arb.parse_orderbook())
+arb.run()

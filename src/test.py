@@ -30,49 +30,11 @@ class algo:
 
         self.tradable_markets = []
         
-    def get_markets(self):
-        self.tradable_markets.clear()
-        cursor = None
-        self.current_btc_price = self.webscraper.get_BTC_price()
-        for _ in range(3):
-            market_params = {'limit':1000,
-                    'cursor':cursor, # passing in the cursor from the previous get_markets call
-                    'event_ticker': None,
-                    'series_ticker':None,
-                    'max_close_ts':None, # pass in unix_ts
-                    'min_close_ts':None, # pass in unix_ts
-                    'status':None,
-                    'tickers':None
-                    }
-            markets_response = self.exchange_client.get_markets(**market_params)
-            cursor = markets_response['cursor']
-            for market in markets_response["markets"]:
-                if "Bitcoin" in market["title"] and "Nov 12" in market["title"] and "range" not in market["title"]:
-                    if self.current_btc_price-1000 <= filter_digits(market["subtitle"]) <= self.current_btc_price+1000:
-                        self.tradable_markets.append((market["title"], market["subtitle"], market["ticker"]))
+    def test(self):
+        order_params = {'ticker': 'KXBTCD-24NOV1317-T90749.99', 'client_order_id': 'f60c9a60-87bf-495f-a71c-e4a510a17555', 'side': 'yes', 'action': 'buy', 'count': 325, 'type': 'market'}
+            #orders["orders"].append(order_params)
+        self.exchange_client.create_order(**order_params)
 
-        self.last_price_check = time.time()
-    
-    def get_asks(self):
-        market_asks = {}
-        for title, subtitle, ticker in self.tradable_markets:
-            market_history_params = {'ticker':ticker, 'depth': 1}
-            orderbook_response = self.exchange_client.get_orderbook(**market_history_params)
-            market_asks[title+subtitle] = orderbook_response["orderbook"]["yes"][0]
+alg = algo()
 
-        return market_asks
-    
-    def run(self):
-        while 1:
-            if time.time() - self.last_price_check >= 120:
-                self.get_markets()
-
-            pprint(self.get_asks())
-            time.sleep(5)
-
-
-        
-    
-
-algorithm = algo()
-algorithm.run()
+alg.test()

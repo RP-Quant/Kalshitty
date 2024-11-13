@@ -28,5 +28,8 @@ class Webscraper:
         self.driver.get(endpoint)
         return filter_digits(self.driver.find_element(By.CSS_SELECTOR, r'span.text-sm.font-semibold.tabular-nums.md\:text-2xl').text)
     
-def calc_fees(chance):
-    return math.ceil((chance)*(1-chance)*0.07)
+def calc_fees(chance, num_contracts):
+    return math.ceil((chance/100)*(1-chance/100)*num_contracts*0.07)*100
+
+def cut_down(num):
+    return ((math.ceil(num)-250)//500)-160
