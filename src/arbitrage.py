@@ -10,7 +10,7 @@ class Arbitrage:
         self.exchange_client = ExchangeClient(api_base, key_id, private_key)
 
         #threshold for probable markets
-        self.bid_threshold = 3
+        self.bid_threshold = 2
 
         #buy yes or no
         self.side = side
@@ -59,8 +59,8 @@ class Arbitrage:
             #print(ticker, price, self.exchange_client.get_orderbook(ticker=ticker, depth=32)["orderbook"][side][-1][1])
             minimum_orders = min(minimum_orders, self.exchange_client.get_orderbook(ticker=ticker, depth=32)["orderbook"][side][-1][1])
             total_price += price
-        print(total_price)
-        minimum_orders = min(min(minimum_orders, self.exchange_client.get_balance()["balance"]//total_price), 100)
+        #print(total_price)
+        minimum_orders = min(min(minimum_orders, self.exchange_client.get_balance()["balance"]//total_price), 50)
 
         total_fees = 0
         for ticker, price in tickers:
@@ -69,7 +69,11 @@ class Arbitrage:
         return minimum_orders, total_fees
     
     def make_orders(self, orders_to_make):
-        #orders = {"orders" : []}
+        orders = {"orders":[]}
+        if not orders_to_make:
+            print("No opportunities found")
+            return
+        
         for ticker, amount in orders_to_make:
             order_params = {'ticker':ticker,
                     'client_order_id':str(uuid.uuid4()),
@@ -84,9 +88,10 @@ class Arbitrage:
                     'buy_max_cost':None}
             
             #print(order_params)
-            #orders["orders"].append(order_params)
+            orders["orders"].append(order_params)
             self.exchange_client.create_order(**order_params)
             print(f'Bought {amount} shares of {ticker}')
+        #self.exchange_client.batch_create_orders(orders)
         self.order_made = True
     #finding price discrepancies
     def arb_search(self):
@@ -117,11 +122,12 @@ class SpreadCover(Arbitrage):
                             arb = [(self.above_market_tickers[i], minimum_orders)]
                             for between_ticker, _ in curr_between_asks:
                                 arb.append((between_ticker, minimum_orders))
-                            max_arb = arb
-                            max_profit = minimum_orders*(100-under_price-self.above_market_asks[i])-total_fees
+                            #max_arb = arb
+                            #max_profit = minimum_orders*(100-under_price-self.above_market_asks[i])-total_fees
                             print(f'Profitable trade found. Estmated profit: {minimum_orders*(100-under_price-self.above_market_asks[i])-total_fees}')
+                            return arb
         
-        return max_arb
+        return []
     
     def run(self):
         while not self.order_made:

@@ -30,8 +30,8 @@ class KalshiClient:
         """
 
         self.host = host
-        self.key_id: key_id
-        self.private_key: private_key
+        self.key_id = key_id
+        self.private_key = private_key
         self.user_id = user_id
         self.last_api_call = datetime.now()
 
@@ -40,7 +40,7 @@ class KalshiClient:
     code. Feel free to adjust the threshold"""
     def rate_limit(self) -> None:
         # Adjust time between each api call
-        THRESHOLD_IN_MILLISECONDS = 100
+        THRESHOLD_IN_MILLISECONDS = 200
 
         now = datetime.now()
         threshold_in_microseconds = 1000 * THRESHOLD_IN_MILLISECONDS
@@ -106,6 +106,7 @@ class KalshiClient:
         headers["KALSHI-ACCESS-KEY"] = self.key_id
         headers["KALSHI-ACCESS-SIGNATURE"] = signature
         headers["KALSHI-ACCESS-TIMESTAMP"] = timestampt_str
+        #print(headers)
         return headers
     
     def sign_pss_text(self, text: str) -> str:
@@ -127,6 +128,7 @@ class KalshiClient:
             raise ValueError("RSA sign PSS failed") from e
 
     def raise_if_bad_response(self, response: requests.Response) -> None:
+        #print(response.json())
         if response.status_code not in range(200, 299):
             raise HttpError(response.reason, response.status_code)
     
@@ -286,7 +288,7 @@ class ExchangeClient(KalshiClient):
         
         relevant_params = {k: v for k,v in locals().items() if k != 'self' and v != None}   
 
-        print(relevant_params)                         
+        #print(relevant_params)                         
         order_json = json.dumps(relevant_params)
         orders_url = self.portfolio_url + '/orders'
         result = self.post(path = orders_url, body = order_json)
@@ -296,6 +298,7 @@ class ExchangeClient(KalshiClient):
                                 orders:list
         ):
         orders_json = json.dumps({'orders': orders})
+        print(orders_json)
         batched_orders_url = self.portfolio_url + '/orders/batched'
         result = self.post(path = batched_orders_url, body = orders_json)
         return result

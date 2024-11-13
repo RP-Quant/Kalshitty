@@ -1,4 +1,4 @@
-from KalshiClientsBaseV2ApiKey import ExchangeClient
+from KalshiClientsBaseV2ApiKey import ExchangeClient, HTTPError
 import uuid
 from config import KEY_ID
 from pprint import pprint
@@ -31,10 +31,15 @@ class algo:
         self.tradable_markets = []
         
     def test(self):
-        order_params = {'ticker': 'KXBTCD-24NOV1317-T90749.99', 'client_order_id': 'f60c9a60-87bf-495f-a71c-e4a510a17555', 'side': 'yes', 'action': 'buy', 'count': 325, 'type': 'market'}
+        #orders = {'orders':[]}
+        order_params = {'ticker': 'KXBTCD-24NOV1317-T90749.99', 'client_order_id': str(uuid.uuid4()), 'side': 'yes', 'action': 'buy', 'count': 350, 'type': 'market'}
+        #order_params2 = {'ticker': 'KXBTCD-24NOV1317-T90249.99', 'client_order_id': str(uuid.uuid4()), 'side': 'yes', 'action': 'buy', 'count': 1, 'type': 'market'}
             #orders["orders"].append(order_params)
+        #print(self.exchange_client.get_balance())
         self.exchange_client.create_order(**order_params)
 
 alg = algo()
-
-alg.test()
+try:
+    alg.test()
+except HTTPError as e:
+    print(str(e))
