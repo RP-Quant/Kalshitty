@@ -3,6 +3,7 @@ from cryptography.hazmat.backends import default_backend
 from selenium.webdriver.common.by import By
 from selenium import webdriver
 import re
+import math
 
 def load_private_key_from_file(file_path):
     with open(file_path, "rb") as key_file:
@@ -26,3 +27,6 @@ class Webscraper:
         endpoint = "https://www.cfbenchmarks.com/data/indices/BRTI?ref=blog.cfbenchmarks.com"
         self.driver.get(endpoint)
         return filter_digits(self.driver.find_element(By.CSS_SELECTOR, r'span.text-sm.font-semibold.tabular-nums.md\:text-2xl').text)
+    
+def calc_fees(chance):
+    return math.ceil((chance)*(1-chance)*0.07)
