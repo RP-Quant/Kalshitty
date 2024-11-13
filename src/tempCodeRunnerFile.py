@@ -1,1 +1,0 @@
-self.exchange_client.get_orderbook(ticker=above_ticker, depth=32)["orderbook"]["no"][0][-1]
