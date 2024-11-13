@@ -199,10 +199,22 @@ class ExchangeClient(KalshiClient):
         market_url = self.get_market_url(ticker=ticker)
         dictr = self.get(market_url)
         return dictr
-
+    
     def get_event(self, 
                     event_ticker:str):
         dictr = self.get(self.events_url+'/'+event_ticker)
+        
+        return dictr
+
+    def get_events(self, 
+                    event_ticker:str):
+        cursor = None
+        dictr = {}
+        for _ in range(3):
+            response = self.get(self.events_url+'/'+event_ticker, params={"limit" : 200, "cursor" : cursor})
+            cursor = response["cursor"]
+            dictr.update(response)
+
         return dictr
 
     def get_series(self, 
