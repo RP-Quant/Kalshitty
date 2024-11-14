@@ -80,12 +80,12 @@ class Arbitrage:
             print("No opportunities found")
             return
         
-        for ticker, amount in orders_to_make:
+        for ticker, amount, side in orders_to_make:
             order_params = {'ticker':ticker,
                     'client_order_id':str(uuid.uuid4()),
                     'type':'market',
                     'action':'buy',
-                    'side':self.side,
+                    'side':side,
                     'count':amount,
                     'yes_price':None, # yes_price = 100 - no_price
                     'no_price':None, # no_price = 100 - yes_price
@@ -126,8 +126,12 @@ class Mint(Arbitrage):
                 print(A, B, C)
                 #print(self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1])
                 print(f'Opportunity found, profit: {200-(C+B+A)}')
-                c, p, s = self.get_min_orders(self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1], A, B, C)
-                arbs.append((c, p, s))
+                if 200-(C+B+A) >= 2:
+                    c, p, s = self.get_min_orders(self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1], A, B, C)
+                    if s:
+                        arbs.append((self.above_market_tickers[i+1], s, "no"))
+                        arbs.append((self.above_market_tickers[i], s, "yes"))
+                        arbs.append((self.between_market_tickers[i+1], s, "no"))
 
         return arbs
 
@@ -144,22 +148,17 @@ class Mint(Arbitrage):
             print(f'Total cost: {total_cost}, total_profit: {total_profit}, shares availible: {min_orders}')
             return total_cost, total_profit, min_orders
         except:
-            return None
+            return 0, 0, 0
 
 
 
     def run(self):
         print("Starting...")
-        with open("src/btc_record2.csv", "w") as file:
-            writer = csv.writer(file)
-            writer.writerow(["Time", "Fees", "Profit", "Shares"])
-            while 1:
-                self.get_ranges()
-                arbs = self.arb_search()
-                if arbs:
-                    for arb in arbs:
-                        writer.writerow([time.time()]+list(arb))
-                time.sleep(1)
+        while not self.order_made:
+            self.get_ranges()
+            arbs = self.arb_search()
+            if arbs:
+                self.make_orders(arbs)
 
 
 class SpreadCover(Arbitrage):
