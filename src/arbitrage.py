@@ -131,7 +131,7 @@ class Mint(Arbitrage):
         B_orders = self.exchange_client.get_orderbook(B, 32)["orderbook"]["no"][-1][1]
         C_orders = self.exchange_client.get_orderbook(C, 32)["orderbook"]["yes"][-1][1]
 
-        min_orders = min(A_orders, B_orders, C_orders, self.exchange_client.get_balance()["balance"]//(a+b+c))
+        min_orders = min(A_orders, B_orders, C_orders, 1000000//(a+b+c))#self.exchange_client.get_balance()["balance"]//(a+b+c))
         total_cost = calc_fees(a, min_orders) + calc_fees(b, min_orders) + calc_fees(c, min_orders)
         total_profit = min_orders * (200-(a+b+c))
 
