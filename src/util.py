@@ -32,4 +32,5 @@ def calc_fees(chance, num_contracts):
     return math.ceil((chance/100)*(1-chance/100)*num_contracts*0.07)*100
 
 def cut_down(num):
-    return ((math.ceil(num)-250)//500)-160
+    return ((math.ceil(num)-250)//500)-156
+    #return ((math.ceil(num))//40)-60

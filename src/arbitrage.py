@@ -2,6 +2,7 @@ from KalshiClientsBaseV2ApiKey import ExchangeClient
 from util import filter_digits, calc_fees, cut_down
 import uuid
 import time
+from pprint import pprint
 
 #base arbtrage class
 class Arbitrage:
@@ -10,7 +11,7 @@ class Arbitrage:
         self.exchange_client = ExchangeClient(api_base, key_id, private_key)
 
         #threshold for probable markets
-        self.bid_threshold = 2
+        self.bid_threshold = 5
 
         #buy yes or no
         self.side = side
@@ -20,12 +21,14 @@ class Arbitrage:
         self.between_event_ticker = between_event
 
         #arrays to hold the asks for each specific market
-        self.above_market_asks = [None]*40
-        self.between_market_asks = [None]*40
+        self.above_market_asks = [None]*100
+        self.above_market_bids = [None]*100
+        self.between_market_asks = [None]*100
+        self.between_market_bids = [None]*100
 
         #arrays to hold the tickers for each specific market
-        self.above_market_tickers = [None]*40
-        self.between_market_tickers = [None]*40
+        self.above_market_tickers = [None]*100
+        self.between_market_tickers = [None]*100
 
         #testing
         self.order_made = False
@@ -38,17 +41,19 @@ class Arbitrage:
         for market in above_event["markets"]:
             if market["yes_bid"] >= self.bid_threshold and market["no_bid"] >= self.bid_threshold:
                 market_idx = cut_down(filter_digits(market[f'{self.side}_sub_title']))
-                self.above_market_asks[market_idx] = market[f'{self.side}_ask']  
+                self.above_market_asks[market_idx] = market[f'{self.side}_ask']
+                self.above_market_bids[market_idx] = market[f'{self.side}_bid']
                 self.above_market_tickers[market_idx] = market["ticker"]
 
         for market in between_event["markets"]:
+            #print(market["subtitle"], market["yes_bid"], market["no_bid"])
             if market["yes_bid"] >= self.bid_threshold and market["no_bid"] >= self.bid_threshold:
-                if "above" in market[f'{self.side}_sub_title']:
+                if "above" in market[f'{self.side}_sub_title'] or "below" in market[f'{self.side}_sub_title']:
                     continue
 
                 market_idx = cut_down(filter_digits(market[f'{self.side}_sub_title'][-10:]))
-
                 self.between_market_asks[market_idx] = market[f'{self.side}_ask']
+                self.between_market_bids[market_idx] = market[f'{self.side}_bid']
                 self.between_market_tickers[market_idx] = market["ticker"]
 
     def find_min_orders_and_fees(self, tickers):
@@ -100,6 +105,47 @@ class Arbitrage:
     #run
     def run(self):
         raise NotImplementedError
+
+class Mint(Arbitrage):
+    def __init__(self, api_base, key_id, private_key, above_event, between_event, side):
+        super().__init__(api_base, key_id, private_key, above_event, between_event, side)
+
+    def arb_search(self):
+        for i in range(39):
+            if not self.above_market_asks[i] or not self.above_market_bids[i+1] or not self.between_market_bids[i+1]:
+                #print(self.above_market_asks[i], self.above_market_bids[i+1], self.between_market_bids[i+1])
+                continue
+
+            A = 100-self.above_market_bids[i+1]
+            B = self.above_market_asks[i]
+            C = 100-self.between_market_bids[i+1]
+
+            if 200 > C+B+A:
+                print(A, B, C)
+                #print(self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1])
+                print(f'Opportunity found, profit: {200-(C+B+A)}')
+                self.get_min_orders(self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1], A, B, C)
+
+    def get_min_orders(self, A, B, C, a, b, c):
+        A_orders = self.exchange_client.get_orderbook(A, 32)["orderbook"]["yes"][-1][1]
+        B_orders = self.exchange_client.get_orderbook(B, 32)["orderbook"]["no"][-1][1]
+        C_orders = self.exchange_client.get_orderbook(C, 32)["orderbook"]["yes"][-1][1]
+
+        min_orders = min(A_orders, B_orders, C_orders, self.exchange_client.get_balance()["balance"]//(a+b+c))
+        total_cost = calc_fees(a, min_orders) + calc_fees(b, min_orders) + calc_fees(c, min_orders)
+        total_profit = min_orders * (200-(a+b+c))
+
+        print(f'Total cost: {total_cost}, total_profit: {total_profit}, shares bought: {min_orders}')
+
+
+
+    def run(self):
+        print("Starting...")
+        while 1:
+            self.get_ranges()
+            self.arb_search()
+            time.sleep(1)
+
 
 class SpreadCover(Arbitrage):
     def __init__(self, api_base, key_id, private_key, above_event, between_event, side):
