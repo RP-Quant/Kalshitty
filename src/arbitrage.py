@@ -3,6 +3,7 @@ from util import filter_digits, calc_fees, cut_down
 import uuid
 import time
 from pprint import pprint
+import csv
 
 #base arbtrage class
 class Arbitrage:
@@ -111,6 +112,7 @@ class Mint(Arbitrage):
         super().__init__(api_base, key_id, private_key, above_event, between_event, side)
 
     def arb_search(self):
+        arbs = []
         for i in range(39):
             if not self.above_market_asks[i] or not self.above_market_bids[i+1] or not self.between_market_bids[i+1]:
                 #print(self.above_market_asks[i], self.above_market_bids[i+1], self.between_market_bids[i+1])
@@ -124,27 +126,36 @@ class Mint(Arbitrage):
                 print(A, B, C)
                 #print(self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1])
                 print(f'Opportunity found, profit: {200-(C+B+A)}')
-                self.get_min_orders(self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1], A, B, C)
+                c, p, s = self.get_min_orders(self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1], A, B, C)
+                arbs.append((c, p, s))
+
+        return arbs
 
     def get_min_orders(self, A, B, C, a, b, c):
         A_orders = self.exchange_client.get_orderbook(A, 32)["orderbook"]["yes"][-1][1]
         B_orders = self.exchange_client.get_orderbook(B, 32)["orderbook"]["no"][-1][1]
         C_orders = self.exchange_client.get_orderbook(C, 32)["orderbook"]["yes"][-1][1]
 
-        min_orders = min(A_orders, B_orders, C_orders, 1000000//(a+b+c))#self.exchange_client.get_balance()["balance"]//(a+b+c))
+        min_orders = min(A_orders, B_orders, C_orders)#self.exchange_client.get_balance()["balance"]//(a+b+c))
         total_cost = calc_fees(a, min_orders) + calc_fees(b, min_orders) + calc_fees(c, min_orders)
         total_profit = min_orders * (200-(a+b+c))
 
-        print(f'Total cost: {total_cost}, total_profit: {total_profit}, shares bought: {min_orders}')
+        print(f'Total cost: {total_cost}, total_profit: {total_profit}, shares availible: {min_orders}')
+        return total_cost, total_profit, min_orders
 
 
 
     def run(self):
         print("Starting...")
-        while 1:
-            self.get_ranges()
-            self.arb_search()
-            time.sleep(1)
+        with open("src/arb_record.csv", "w") as file:
+            writer = csv.writer(file)
+            writer.writerow(["Time", "Fees", "Profit", "Shares"])
+            while 1:
+                self.get_ranges()
+                arbs = self.arb_search()
+                for arb in arbs:
+                    writer.writerow(arb)
+                time.sleep(1)
 
 
 class SpreadCover(Arbitrage):
