@@ -14,7 +14,7 @@ from collections import defaultdict
 import re
 import math
 from util import load_private_key_from_file, filter_digits, Webscraper
-
+import time
 
 class algo:
     def __init__(self):
@@ -31,12 +31,9 @@ class algo:
         self.tradable_markets = []
         
     def test(self):
-        #orders = {'orders':[]}
-        order_params = {'ticker': 'KXBTCD-24NOV1317-T90749.99', 'client_order_id': str(uuid.uuid4()), 'side': 'yes', 'action': 'buy', 'count': 350, 'type': 'market'}
-        #order_params2 = {'ticker': 'KXBTCD-24NOV1317-T90249.99', 'client_order_id': str(uuid.uuid4()), 'side': 'yes', 'action': 'buy', 'count': 1, 'type': 'market'}
-            #orders["orders"].append(order_params)
-        #print(self.exchange_client.get_balance())
-        self.exchange_client.create_order(**order_params)
+        start = time.time()
+        print(self.exchange_client.get_orderbook(ticker="KXBTC-24NOV1817-B88250", depth=32))
+        print(time.time()-start)
 
 alg = algo()
 try:

@@ -63,7 +63,7 @@ class Arbitrage:
         total_price = 0
         for ticker, price in tickers:
             #print(ticker, price, self.exchange_client.get_orderbook(ticker=ticker, depth=32)["orderbook"][side][-1][1])
-            minimum_orders = min(minimum_orders, self.exchange_client.get_orderbook(ticker=ticker, depth=32)["orderbook"][side][-1][1])
+            minimum_orders = min(minimum_orders, self.exchange_client.get_orderbook(ticker=ticker, depth=1)["orderbook"][side][-1][1])
             total_price += price
         #print(total_price)
         minimum_orders = min(min(minimum_orders, self.exchange_client.get_balance()["balance"]//total_price), 50)
@@ -80,12 +80,12 @@ class Arbitrage:
             print("No opportunities found")
             return
         
-        for ticker, amount in orders_to_make:
+        for ticker, amount, side in orders_to_make:
             order_params = {'ticker':ticker,
                     'client_order_id':str(uuid.uuid4()),
                     'type':'market',
                     'action':'buy',
-                    'side':self.side,
+                    'side':side,
                     'count':amount,
                     'yes_price':None, # yes_price = 100 - no_price
                     'no_price':None, # no_price = 100 - yes_price
@@ -112,7 +112,8 @@ class Mint(Arbitrage):
         super().__init__(api_base, key_id, private_key, above_event, between_event, side)
 
     def arb_search(self):
-        arbs = []
+        sell1, buy1, sell2 = None, None, None
+        max_profit = -float('inf')
         for i in range(39):
             if not self.above_market_asks[i] or not self.above_market_bids[i+1] or not self.between_market_bids[i+1]:
                 #print(self.above_market_asks[i], self.above_market_bids[i+1], self.between_market_bids[i+1])
@@ -121,45 +122,45 @@ class Mint(Arbitrage):
             A = 100-self.above_market_bids[i+1]
             B = self.above_market_asks[i]
             C = 100-self.between_market_bids[i+1]
-
+            #print(A, B, C)
             if 200 > C+B+A:
                 print(A, B, C)
                 #print(self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1])
                 print(f'Opportunity found, profit: {200-(C+B+A)}')
-                c, p, s = self.get_min_orders(self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1], A, B, C)
-                arbs.append((c, p, s))
+                if 200-(C+B+A) > max_profit:
+                    max_profit = 200-(C+B+A)
+                    sell1, buy1, sell2 = self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1]
+        
+        if sell1:
+            print(sell1, buy1, sell2)
+            _, _, s = self.get_min_orders(sell1, buy1, sell2)
+            return [(sell1, s, "no"), (buy1, s, "yes"), (sell2, s, "no")]
+        return []
 
-        return arbs
+    def get_min_orders(self, A, B, C):
+        A_price, A_orders = self.exchange_client.get_orderbook(A, 1)["orderbook"]["yes"][-1]
+        B_price, B_orders = self.exchange_client.get_orderbook(B, 1)["orderbook"]["no"][-1]
+        C_price, C_orders = self.exchange_client.get_orderbook(C, 1)["orderbook"]["yes"][-1]
 
-    def get_min_orders(self, A, B, C, a, b, c):
-        try:
-            A_orders = self.exchange_client.get_orderbook(A, 32)["orderbook"]["yes"][-1][1]
-            B_orders = self.exchange_client.get_orderbook(B, 32)["orderbook"]["no"][-1][1]
-            C_orders = self.exchange_client.get_orderbook(C, 32)["orderbook"]["yes"][-1][1]
+        print(self.exchange_client.get_orderbook(A, 1)["orderbook"]["yes"])
 
-            min_orders = min(A_orders, B_orders, C_orders)#self.exchange_client.get_balance()["balance"]//(a+b+c))
-            total_cost = calc_fees(a, min_orders) + calc_fees(b, min_orders) + calc_fees(c, min_orders)
-            total_profit = min_orders * (200-(a+b+c))
+        min_orders = min(A_orders, B_orders, C_orders)#self.exchange_client.get_balance()["balance"]//(a+b+c))
+        total_cost = calc_fees(A_price, min_orders) + calc_fees(B_price, min_orders) + calc_fees(C_price, min_orders)
+        total_profit = min_orders * (200-(A_price+B_price+C_price))
 
-            print(f'Total cost: {total_cost}, total_profit: {total_profit}, shares availible: {min_orders}')
-            return total_cost, total_profit, min_orders
-        except:
-            return None
+        print(f'Total cost: {total_cost}, total_profit: {total_profit}, shares availible: {min_orders}')
+        return total_cost, total_profit, min_orders
 
 
 
     def run(self):
         print("Starting...")
-        with open("src/btc_record2.csv", "w") as file:
-            writer = csv.writer(file)
-            writer.writerow(["Time", "Fees", "Profit", "Shares"])
-            while 1:
-                self.get_ranges()
-                arbs = self.arb_search()
-                if arbs:
-                    for arb in arbs:
-                        writer.writerow([time.time()]+list(arb))
-                time.sleep(1)
+        while 1:
+            self.get_ranges()
+            arbs = self.arb_search()
+            if arbs:
+                print(arbs)
+                #self.make_orders(arbs)
 
 
 class SpreadCover(Arbitrage):
