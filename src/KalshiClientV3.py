@@ -63,10 +63,10 @@ class KalshiClient:
                 
             self.post_requests[0] += 1
 
-            if self.post_requests[0] >= (self.post_limit - 1):
+            if self.post_requests[0] >= self.post_limit:
                 print("Exceeded post rate limit, sleeping to reset it")
                 await asyncio.sleep(1.05 - (curr_time - self.post_requests[1]))
-                self.post_requests[0] = 0
+                self.post_requests[0] = 1
                 self.post_requests[1] = time.time()
 
         url = self.host + path
@@ -88,10 +88,10 @@ class KalshiClient:
                 
             self.get_requests[0] += 1
 
-            if self.get_requests[0] >= (self.get_limit - 1):
+            if self.get_requests[0] >= self.get_limit:
                 print("Exceeded get rate limit, sleeping to reset it")
                 await asyncio.sleep(1.05 - (curr_time - self.get_requests[1]))
-                self.get_requests[0] = 0
+                self.get_requests[0] = 1
                 self.get_requests[1] = time.time()
         
         url = self.host + path
@@ -114,10 +114,10 @@ class KalshiClient:
                 
             self.post_requests[0] += 1
 
-            if self.post_requests[0] >= (self.post_limit - 1):
+            if self.post_requests[0] >= self.post_limit:
                 print("Exceeded delete/post rate limit, sleeping to reset it")
                 await asyncio.sleep(1.05 - (curr_time - self.post_requests[1]))
-                self.post_requests[0] = 0
+                self.post_requests[0] = 1
                 self.post_requests[1] = time.time()
         
         url = self.host + path

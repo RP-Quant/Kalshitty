@@ -41,7 +41,7 @@ class Strategy:
             async with self.mutex:
                 if data_sent_timestamp > self.last_data_request_sent_timestamps[event_ticker]:
                     # TODO: update registry with data here
-                    print(time.time() - data_sent_timestamp, data_sent_timestamp)
+                    print(time.time() - data_sent_timestamp, data_sent_timestamp, data, time.time())
                     self.last_data_request_sent_timestamps[event_ticker] = data_sent_timestamp
 
     async def get_market_data(self, client):
@@ -52,8 +52,9 @@ class Strategy:
 
     async def strategy(self):
         # Your strategy here
-        await asyncio.sleep(1)
-        print("strat")
+        while True:
+            print("strat")
+            await asyncio.sleep(0.2)
 
     async def loop(self):
         async with ExchangeClient(self.api_base, self.key_id, self.private_key) as client:
