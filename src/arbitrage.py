@@ -132,7 +132,7 @@ class Mint(Arbitrage):
                     sell1, buy1, sell2 = self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1]
         
         if sell1:
-            print(sell1, buy1, sell2)
+            #print(sell1, buy1, sell2)
             _, _, s = self.get_min_orders(sell1, buy1, sell2)
             return [(sell1, s, "no"), (buy1, s, "yes"), (sell2, s, "no")]
         return []
@@ -142,11 +142,13 @@ class Mint(Arbitrage):
         B_price, B_orders = self.exchange_client.get_orderbook(B, 1)["orderbook"]["no"][-1]
         C_price, C_orders = self.exchange_client.get_orderbook(C, 1)["orderbook"]["yes"][-1]
 
-        print(self.exchange_client.get_orderbook(A, 1)["orderbook"]["yes"])
+        print(100-A_price, A_orders)
+        print(100-B_price, B_orders)
+        print(100-C_price, C_orders)
 
         min_orders = min(A_orders, B_orders, C_orders)#self.exchange_client.get_balance()["balance"]//(a+b+c))
-        total_cost = calc_fees(A_price, min_orders) + calc_fees(B_price, min_orders) + calc_fees(C_price, min_orders)
-        total_profit = min_orders * (200-(A_price+B_price+C_price))
+        total_cost = calc_fees(100-A_price, min_orders) + calc_fees(100-B_price, min_orders) + calc_fees(100-C_price, min_orders)
+        total_profit = min_orders * (200-(100-A_price+100-B_price+100-C_price))
 
         print(f'Total cost: {total_cost}, total_profit: {total_profit}, shares availible: {min_orders}')
         return total_cost, total_profit, min_orders
