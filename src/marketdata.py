@@ -128,8 +128,12 @@ class Event:
             print(f"Failed to connect to WebSocket: {e}")
 
     async def get_data(self, ticker, side):
-        i = 99
-        while self.markets[ticker][side][i] == 0 and i > 0:
-            i -= 1
-
-        return self.markets[ticker][side][i], i+1
+        try:
+            i = 99
+            while self.markets[ticker][side][i] == 0 and i > 0:
+                i -= 1
+            #print(self.markets[ticker][side])
+            return self.markets[ticker][side][i], i+1
+        except Exception as e:
+            print(e)
+            return -1, -1
