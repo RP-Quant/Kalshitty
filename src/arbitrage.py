@@ -79,14 +79,14 @@ class Arbitrage:
         if not orders_to_make:
             print("No opportunities found")
             return
-        
+        # TODO: CHANGE THIS TO AMOUNT ONCE DONE TESTING
         for ticker, amount, side in orders_to_make:
             order_params = {'ticker':ticker,
                     'client_order_id':str(uuid.uuid4()),
                     'type':'market',
                     'action':'buy',
                     'side':side,
-                    'count':amount,
+                    'count':1,#amount,
                     'yes_price':None, # yes_price = 100 - no_price
                     'no_price':None, # no_price = 100 - yes_price
                     'expiration_ts':None,
@@ -127,7 +127,7 @@ class Mint(Arbitrage):
                 print(A, B, C)
                 #print(self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1])
                 print(f'Opportunity found, profit: {200-(C+B+A)}')
-                if 200-(C+B+A) > max_profit:
+                if 200-(C+B+A) > max_profit and 200-(C+B+A) > 2:
                     max_profit = 200-(C+B+A)
                     sell1, buy1, sell2 = self.above_market_tickers[i+1], self.above_market_tickers[i], self.between_market_tickers[i+1]
         
@@ -159,10 +159,13 @@ class Mint(Arbitrage):
         print("Starting...")
         while 1:
             self.get_ranges()
+            starttime = time.time()
             arbs = self.arb_search()
             if arbs:
                 print(arbs)
-                #self.make_orders(arbs)
+                self.make_orders(arbs)
+                print("making orders took:", str(time.time() - starttime), "seconds, from getting data to placing order")
+                time.sleep(10)
 
 
 class SpreadCover(Arbitrage):
