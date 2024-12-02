@@ -60,6 +60,17 @@ class KalshiClient:
         )
         self.raise_if_bad_response(response)
         return response.json()
+    
+    def fast_post(self, path: str, body: dict) -> Any:
+        """POSTs to an authenticated Kalshi HTTP endpoint.
+        Returns the response body. Raises an HttpError on non-2XX results.
+        """
+
+        response = requests.post(
+            self.host + path, data=body, headers=self.request_headers("POST", path)
+        )
+        self.raise_if_bad_response(response)
+        return response.json()
 
     def get(self, path: str, params: Dict[str, Any] = {}) -> Any:
         """GETs from an authenticated Kalshi HTTP endpoint.
@@ -291,7 +302,7 @@ class ExchangeClient(KalshiClient):
         #print(relevant_params)                         
         order_json = json.dumps(relevant_params)
         orders_url = self.portfolio_url + '/orders'
-        result = self.post(path = orders_url, body = order_json)
+        result = self.fast_post(path = orders_url, body = order_json)
         return result
 
     def batch_create_orders(self, 

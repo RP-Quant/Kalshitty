@@ -7,6 +7,7 @@ from KalshiClientsBaseV2ApiKey import ExchangeClient
 from pprint import pprint
 from config import EMAIL, PASSWORD, WEBSOCKET_ENDPOINT
 from bisect import bisect_left
+import time
 
 class Event:
     def __init__(self, ticker, exchange_client: ExchangeClient):
@@ -18,6 +19,7 @@ class Event:
         self.sid = 1
         self.id = 1
         self.auth_token = self.login()
+        self.last_time = time.time()
 
     def initialize(self):
         event = self.exchange_client.get_event(self.ticker)
@@ -91,6 +93,8 @@ class Event:
                 while True:
                     try:
                         message = await websocket.recv()
+                        #print(f"Seconds elapsed: {time.time()-self.last_time}")
+                        #self.last_time = time.time()
                         if not await self.process_message(message):
                             unsub = json.dumps({
                                 "id": self.id,
