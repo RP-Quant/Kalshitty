@@ -9,18 +9,21 @@ from config import KEY_ID
 
 
 class BTCArbitrage:
-    def __init__(self, api_base, key_id: str, private_key):
+    def __init__(self, api_base, key_id: str, private_key, range_ticker, above_ticker, threshold):
         self.exchange_client = ExchangeClient(api_base, key_id, private_key)
-        self.above_event = Event("KXBTCD-24DEC0217", self.exchange_client)
-        self.range_event = Event("KXBTC-24DEC0217", self.exchange_client)
+        self.above_ticker = above_ticker
+        self.range_ticker = range_ticker
+        self.above_event = Event(above_ticker, self.exchange_client)
+        self.range_event = Event(range_ticker, self.exchange_client)
 
         self.markets_arr = [{"above": None, "range": None} for _ in range(100)]
         self.balance = 0
         self.lock = asyncio.Lock()  # Lock for exclusive access to make_orders
+        self.profit_threshold = threshold
 
     def set_markets(self):
-        above_markets = [m["ticker"] for m in self.exchange_client.get_event("KXBTCD-24DEC0217")["markets"]]
-        range_markets = [m["ticker"] for m in self.exchange_client.get_event("KXBTC-24DEC0217")["markets"]]
+        above_markets = [m["ticker"] for m in self.exchange_client.get_event(self.above_ticker)["markets"]]
+        range_markets = [m["ticker"] for m in self.exchange_client.get_event(self.range_ticker)["markets"]]
         above_dict, range_dict = {}, {}
         min_idx = float("inf")
 
@@ -84,7 +87,7 @@ class BTCArbitrage:
                         orders = min(above_sell, above_buy, range_buy, self.balance//(A+B+C))
                         if orders > 0 and A + B + C < 100:
                             print(f"SBB Arbitrage found. Profit: {100 - A - B - C}, Orders: {orders}")
-                            if 100 - A - B - C > 4:
+                            if 100 - A - B - C > self.profit_threshold:
                                 await self.make_orders([
                                     (self.markets_arr[i]["above"], orders, "no"),
                                     (self.markets_arr[i+1]["above"], orders, "yes"),
@@ -101,7 +104,7 @@ class BTCArbitrage:
                         orders = min(above_buy, above_sell, range_sell, self.balance//(A+B+C))
                         if orders > 0 and A + B + C < 200:
                             print(f"BSS Arbitrage found. Profit: {200 - A - B - C}, Orders: {orders}")
-                            if 200 - A - B - C > 4:
+                            if 200 - A - B - C > self.profit_threshold:
                                 await self.make_orders([
                                     (self.markets_arr[i]["above"], orders, "yes"),
                                     (self.markets_arr[i+1]["above"], orders, "no"),
@@ -147,5 +150,5 @@ class BTCArbitrage:
 private_key = load_private_key_from_file("src/kalshi.key")
 api_base = "https://api.elections.kalshi.com/trade-api/v2"
 
-arb = BTCArbitrage(api_base=api_base, key_id=KEY_ID, private_key=private_key)
+arb = BTCArbitrage(api_base=api_base, key_id=KEY_ID, private_key=private_key, above_ticker="KXBTCD-24DEC0217", range_ticker="KXBTC-24DEC0217", threshold=3)
 asyncio.run(arb.run())
