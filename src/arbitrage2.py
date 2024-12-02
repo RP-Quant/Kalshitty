@@ -58,13 +58,13 @@ class BTCArbitrage:
                     'type': 'market',
                     'action': 'buy',
                     'side': side,
-                    'count': 1,  # Adjust as needed
+                    'count': amount,  # Adjust as needed
                 }
                 self.exchange_client.create_order(**order_params)
                 print(f"Order placed: {amount} shares of {ticker} ({side})")
             self.balance = self.exchange_client.get_balance()["balance"]
             print(f"Current balance: {self.balance}")
-            time.sleep(0.5)
+            time.sleep(1)
 
     async def scan(self, mode: str):
         print("Starting scan...")
@@ -87,7 +87,7 @@ class BTCArbitrage:
                         orders = min(above_sell, above_buy, range_buy, self.balance//(A+B+C))
                         if orders > 0 and A + B + C < 100:
                             print(f"SBB Arbitrage found. Profit: {100 - A - B - C}, Orders: {orders}")
-                            if 100 - A - B - C > self.profit_threshold:
+                            if 100 - A - B - C >= self.profit_threshold:
                                 await self.make_orders([
                                     (self.markets_arr[i]["above"], orders, "no"),
                                     (self.markets_arr[i+1]["above"], orders, "yes"),
@@ -104,7 +104,7 @@ class BTCArbitrage:
                         orders = min(above_buy, above_sell, range_sell, self.balance//(A+B+C))
                         if orders > 0 and A + B + C < 200:
                             print(f"BSS Arbitrage found. Profit: {200 - A - B - C}, Orders: {orders}")
-                            if 200 - A - B - C > self.profit_threshold:
+                            if 200 - A - B - C >= self.profit_threshold:
                                 await self.make_orders([
                                     (self.markets_arr[i]["above"], orders, "yes"),
                                     (self.markets_arr[i+1]["above"], orders, "no"),
