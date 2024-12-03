@@ -4,7 +4,7 @@ class Registry:
     def __init__(self) -> None:
         self.data = {}
         self.last_data_recv_ts = None
-        self.freshness_threshold = 0.5 # data should be received 0.5 seconds ago max to be fresh
+        self.freshness_threshold = 0.05 # data should be received 50 ms ago max to be fresh
 
         # data model:
         # {event_ticker: {
@@ -13,7 +13,8 @@ class Registry:
         #       no_bid_price: int, 
         #       yes_bid_volume: int,
         #       no_bid_volume: int,
-        #       previous_price: int
+        #       previous_price: int,
+        #       unique_ticker: str
         #   }
         # }
 

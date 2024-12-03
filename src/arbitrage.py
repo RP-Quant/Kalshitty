@@ -95,7 +95,7 @@ class Arbitrage:
             
             #print(order_params)
             orders["orders"].append(order_params)
-            self.exchange_client.create_order(**order_params)
+            # self.exchange_client.create_order(**order_params)
             print(f'Bought {amount} shares of {ticker}')
         #self.exchange_client.batch_create_orders(orders)
         self.order_made = True

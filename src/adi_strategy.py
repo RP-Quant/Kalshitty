@@ -24,12 +24,18 @@ def main():
     if time.hour >= 17:
         day += 1
 
-    BTC_PRICE_TICKER += str(time.year)[2:] + months[time.month - 1] + str(day) + "17"
-    BTC_PRICE_RANGE_TICKER += str(time.year)[2:] + months[time.month - 1] + str(day) + "17"
+    if day < 10:
+        day = "0" + str(day)
+    else:
+        day = str(day)
+
+    BTC_PRICE_TICKER += str(time.year)[2:] + months[time.month - 1] + day + "17"
+    BTC_PRICE_RANGE_TICKER += str(time.year)[2:] + months[time.month - 1] + day + "17"
 
     registry = Registry()
+    print(BTC_PRICE_TICKER)
     
-    event_tickers = [BTC_PRICE_TICKER]
+    event_tickers = [BTC_PRICE_TICKER, BTC_PRICE_RANGE_TICKER]
     strat = Strategy(api_base=api_base, key_id=KEY_ID, private_key=private_key, registry=registry, event_tickers=event_tickers)
     strat.run()
     # s = datetime.now()
