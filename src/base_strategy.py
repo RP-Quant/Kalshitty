@@ -30,6 +30,10 @@ class BaseStrategy(ABC):
         self.concurrent_order_limit = 3
         self.order_semaphore = asyncio.Semaphore(self.concurrent_order_limit)
 
+        # maximum of 3 outstanding orders at a time
+        self.concurrent_volume_request_limit = 3
+        self.volume_request_semaphore = asyncio.Semaphore(self.concurrent_volume_request_limit)
+
         # timestamp of when we sent the last data request that we received data for
         self.last_data_request_sent_timestamps = {e : time.time() for e in event_tickers}
 
@@ -53,21 +57,23 @@ class BaseStrategy(ABC):
                                 "yes_ask_price": None,
                                 "no_bid_price": None, 
                                 "no_ask_price": None, 
-                                "yes_bid_volume": None,
-                                "yes_ask_volume": None,
-                                "no_bid_volume": None,
-                                "no_ask_volume": None,
+                                # don't need to store the following because we get it on the fly anwyway
+                                # "yes_bid_volume": None,
+                                # "yes_ask_volume": None,
+                                # "no_bid_volume": None,
+                                # "no_ask_volume": None,
                                 "previous_yes_bid": None,
-                                "previous_yes_ask": None
+                                "previous_yes_ask": None,
+                                "unique_ticker": None
                             }
 
-                        self.registry.data[event_ticker][market["yes_sub_title"]]["yes_bid_price"] = None if market["yes_bid"] == 0 else market["yes_bid"]
-                        self.registry.data[event_ticker][market["yes_sub_title"]]["yes_ask_price"] = None if market["yes_ask"] == 100 else market["yes_ask"]
-                        self.registry.data[event_ticker][market["yes_sub_title"]]["no_bid_price"] = None if market["no_bid"] == 0 else market["no_bid"]
-                        self.registry.data[event_ticker][market["yes_sub_title"]]["no_ask_price"] = None if market["no_ask"] == 100 else market["no_ask"]
-                        self.registry.data[event_ticker][market["yes_sub_title"]]["previous_yes_bid"] = None if market["previous_yes_bid"] == 0 else market["previous_yes_bid"]
-                        self.registry.data[event_ticker][market["yes_sub_title"]]["previous_yes_ask"] = None if market["previous_yes_ask"] == 100 else market["previous_yes_ask"]
-                        
+                        self.registry.data[event_ticker][market["yes_sub_title"]]["yes_bid_price"] = None if not (3 <= market["yes_bid"] <= 97) else market["yes_bid"]
+                        self.registry.data[event_ticker][market["yes_sub_title"]]["yes_ask_price"] = None if not (3 <= market["yes_ask"] <= 97) else market["yes_ask"]
+                        self.registry.data[event_ticker][market["yes_sub_title"]]["no_bid_price"] = None if not (3 <= market["no_bid"] <= 97) else market["no_bid"]
+                        self.registry.data[event_ticker][market["yes_sub_title"]]["no_ask_price"] = None if not (3 <= market["no_ask"] <= 97) else market["no_ask"]
+                        self.registry.data[event_ticker][market["yes_sub_title"]]["previous_yes_bid"] = None if not (1 <= market["previous_yes_bid"] <= 99) else market["previous_yes_bid"]
+                        self.registry.data[event_ticker][market["yes_sub_title"]]["previous_yes_ask"] = None if not (1 <= market["previous_yes_ask"] <= 99) else market["previous_yes_ask"]
+                        self.registry.data[event_ticker][market["yes_sub_title"]]["unique_ticker"] = market["ticker"]
 
                     # print(time.time() - data_sent_timestamp, data_sent_timestamp, [i for i in self.registry.data[event_ticker].keys()], time.time())
                     self.registry.last_data_recv_ts = time.time()
@@ -81,7 +87,6 @@ class BaseStrategy(ABC):
 
     async def _place_order(self, client, ticker, order_type, action, side, amount, yes_price, no_price, expiration_ts, sell_position_floor=None, buy_max_cost=None):
         async with self.order_semaphore:
-            print(amount, "created at", time.time())
             order_params = {'ticker': ticker,
                         'client_order_id': str(uuid.uuid4()),
                         'type': order_type, # either "market" or "limit"
@@ -95,7 +100,9 @@ class BaseStrategy(ABC):
                         'buy_max_cost': buy_max_cost}
             
             response = await client.create_order(**order_params)
-            print(amount, "finished at", time.time())
+            print(action, amount, "shares of", ticker, side)
+            print(response)
+            print(time.time())
 
     def buy_yes_market_order(self, client, ticker, amount):
         asyncio.create_task(self._place_order(client=client, ticker=ticker, 
@@ -152,6 +159,11 @@ class BaseStrategy(ABC):
                                               side="no", amount=amount,
                                               yes_price=None, no_price=price, 
                                               expiration_ts=expiration_ts))
+        
+    async def get_volume(self, client, market_ticker, side):
+        async with self.volume_request_semaphore:
+            result = await client.get_orderbook(ticker=market_ticker, depth=1)
+            return result["orderbook"][side][-1][1]
     
     @abstractmethod
     async def strategy(self, client):
