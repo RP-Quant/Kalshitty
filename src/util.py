@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium import webdriver
 import re
 import math
+from datetime import datetime
 
 def load_private_key_from_file(file_path):
     with open(file_path, "rb") as key_file:
@@ -34,3 +35,9 @@ def calc_fees(chance, num_contracts):
 def cut_down(num):
     return ((math.ceil(num)-250)//500)-156 #bitcoin cut down
     #return ((math.ceil(num))//40)-60 #ethereum cut down
+
+def get_month_day():
+    current_date = datetime.now()
+    month_code = current_date.strftime("%b")  # 3-letter month code
+    day_code = current_date.strftime("%d")
+    return month_code, day_code
