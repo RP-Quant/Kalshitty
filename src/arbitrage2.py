@@ -6,16 +6,17 @@ from KalshiClientsBaseV2ApiKey import ExchangeClient
 from marketdata import Event
 from util import load_private_key_from_file, filter_digits, get_month_day
 from config import KEY_ID, API_BASE
-
+from datetime import datetime
 
 class CryptoArbitrage:
-    def __init__(self, api_base, key_id: str, private_key, threshold, prod, crypto, block_size):
+    def __init__(self, api_base, key_id: str, private_key, threshold, prod, mode, crypto, block_size):
         self.ticker = crypto
         month, day = get_month_day()
         self.above_ticker = "KX" + self.ticker + "D-24" + month.upper() + str(day) + "17"
         self.range_ticker = "KX" + self.ticker + "-24" + month.upper() + str(day) + "17"
         self.block_size = block_size
         self.prod = prod
+        self.mode = mode
 
         self.exchange_client = ExchangeClient(api_base, key_id, private_key)
         self.above_event = Event(self.above_ticker, self.exchange_client)
@@ -92,9 +93,11 @@ class CryptoArbitrage:
                         range_buy, range_buy_price = await self.range_event.get_data(self.markets_arr[i]["range"], "no")
 
                         A, B, C = 100 - above_sell_price, 100 - above_buy_price, 100 - range_buy_price
-                        orders = min(above_sell, above_buy, range_buy, self.balance//(A+B+C))
+                        orders = min(above_sell, above_buy, range_buy)
+                        if self.prod:
+                            orders = min(orders, self.balance//(A+B+C))
                         if orders > 0 and A + B + C < 100:
-                            print(f"SBB Arbitrage found on {self.ticker}. Profit: {100 - A - B - C}, Orders: {orders}")
+                            print(f"SBB Arbitrage found on {self.ticker} at {datetime.now().strftime("%H:%M:%S")}. Profit: {100 - A - B - C}, Orders: {orders}")
                             if 100 - A - B - C >= self.profit_threshold:
                                 if self.prod:
                                     await self.make_orders([
@@ -110,9 +113,11 @@ class CryptoArbitrage:
                         range_sell, range_sell_price = await self.range_event.get_data(self.markets_arr[i]["range"], "yes")
 
                         A, B, C = 100 - above_buy_price, 100 - above_sell_price, 100 - range_sell_price
-                        orders = min(above_buy, above_sell, range_sell, self.balance//(A+B+C))
+                        orders = min(above_buy, above_sell, range_sell)
+                        if self.prod:
+                            orders = min(orders, self.balance//(A+B+C))
                         if orders > 0 and A + B + C < 200:
-                            print(f"BSS Arbitrage found on {self.ticker}. Profit: {200 - A - B - C}, Orders: {orders}")
+                            print(f"BSS Arbitrage found on {self.ticker} at {datetime.now().strftime("%H:%M:%S")}. Profit: {200 - A - B - C}, Orders: {orders}")
                             if 200 - A - B - C >= self.profit_threshold:
                                 if self.prod:
                                     await self.make_orders([
@@ -135,7 +140,7 @@ class CryptoArbitrage:
 
         above_task = asyncio.create_task(self.above_event.start_listen())
         range_task = asyncio.create_task(self.range_event.start_listen())
-        scan_task = asyncio.create_task(self.scan(mode="sbb"))
+        scan_task = asyncio.create_task(self.scan(mode=self.mode))
 
         print(f"Initialization complete. Starting balance: {self.balance}")
 
@@ -156,9 +161,9 @@ class CryptoArbitrage:
                 pass
 
 class BTCArbitrage(CryptoArbitrage):
-    def __init__(self, api_base, key_id, private_key, threshold, prod):
-        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, crypto="BTC", block_size=500)
+    def __init__(self, api_base, key_id, private_key, threshold, mode, prod):
+        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, mode = mode, crypto="BTC", block_size=500)
 
 class ETHArbitrage(CryptoArbitrage):
-    def __init__(self, api_base, key_id, private_key, threshold, prod):
-        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, crypto="ETH", block_size=40)
+    def __init__(self, api_base, key_id, private_key, threshold, mode, prod):
+        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, mode = mode, crypto="ETH", block_size=40)
