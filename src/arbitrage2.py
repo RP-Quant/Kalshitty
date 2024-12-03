@@ -94,7 +94,7 @@ class CryptoArbitrage:
                         A, B, C = 100 - above_sell_price, 100 - above_buy_price, 100 - range_buy_price
                         orders = min(above_sell, above_buy, range_buy, self.balance//(A+B+C))
                         if orders > 0 and A + B + C < 100:
-                            print(f"SBB Arbitrage found. Profit: {100 - A - B - C}, Orders: {orders}")
+                            print(f"SBB Arbitrage found on {self.ticker}. Profit: {100 - A - B - C}, Orders: {orders}")
                             if 100 - A - B - C >= self.profit_threshold:
                                 if self.prod:
                                     await self.make_orders([
@@ -112,7 +112,7 @@ class CryptoArbitrage:
                         A, B, C = 100 - above_buy_price, 100 - above_sell_price, 100 - range_sell_price
                         orders = min(above_buy, above_sell, range_sell, self.balance//(A+B+C))
                         if orders > 0 and A + B + C < 200:
-                            print(f"BSS Arbitrage found. Profit: {200 - A - B - C}, Orders: {orders}")
+                            print(f"BSS Arbitrage found on {self.ticker}. Profit: {200 - A - B - C}, Orders: {orders}")
                             if 200 - A - B - C >= self.profit_threshold:
                                 if self.prod:
                                     await self.make_orders([
@@ -162,7 +162,3 @@ class BTCArbitrage(CryptoArbitrage):
 class ETHArbitrage(CryptoArbitrage):
     def __init__(self, api_base, key_id, private_key, threshold, prod):
         super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, crypto="ETH", block_size=40)
-
-private_key = load_private_key_from_file("src/kalshi.key")
-arb = BTCArbitrage(api_base=API_BASE, key_id=KEY_ID, private_key=private_key, threshold=3, prod=False)
-asyncio.run(arb.run())
