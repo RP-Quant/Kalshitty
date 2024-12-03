@@ -164,6 +164,5 @@ class ETHArbitrage(CryptoArbitrage):
         super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, crypto="ETH", block_size=40)
 
 private_key = load_private_key_from_file("src/kalshi.key")
-
 arb = BTCArbitrage(api_base=API_BASE, key_id=KEY_ID, private_key=private_key, threshold=3, prod=False)
 asyncio.run(arb.run())
