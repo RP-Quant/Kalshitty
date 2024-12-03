@@ -36,8 +36,13 @@ def cut_down(num):
     return ((math.ceil(num)-250)//500)-156 #bitcoin cut down
     #return ((math.ceil(num))//40)-60 #ethereum cut down
 
+<<<<<<< HEAD
 def get_month_day():
     current_date = datetime.now()
     month_code = current_date.strftime("%b")  # 3-letter month code
     day_code = current_date.strftime("%d")
     return month_code, day_code
+=======
+def get_digits(inp: str):
+    return int(''.join([i for i in inp if str.isdecimal(i)]))
+>>>>>>> c7dd9ae9a654ad57023f83fa8813b06c72eee9f5
