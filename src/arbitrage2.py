@@ -60,7 +60,7 @@ class CryptoArbitrage:
                 print("No opportunities found.")
                 return
 
-            for ticker, amount, side in orders_to_make:
+            async def place_order(ticker, amount, side):
                 order_params = {
                     'ticker': ticker,
                     'client_order_id': str(uuid.uuid4()),
@@ -69,11 +69,19 @@ class CryptoArbitrage:
                     'side': side,
                     'count': amount,  # Adjust as needed
                 }
-                self.exchange_client.create_order(**order_params)
+                await self.exchange_client.create_order(**order_params)
                 print(f"Order placed: {amount} shares of {ticker} ({side})")
-            self.balance = self.exchange_client.get_balance()["balance"]
+            
+            # Create tasks for all orders
+            order_tasks = [place_order(ticker, amount, side) for ticker, amount, side in orders_to_make]
+            
+            # Run all tasks concurrently
+            await asyncio.gather(*order_tasks)
+            
+            # Update balance after all orders
+            self.balance = await self.exchange_client.get_balance()["balance"]
             print(f"Current balance: {self.balance}")
-            time.sleep(0.5)
+
 
     async def scan(self, mode: str):
         print("Starting scan...")

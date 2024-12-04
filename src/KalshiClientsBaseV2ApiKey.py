@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.exceptions import InvalidSignature
 import time 
 import base64
+import asyncio
 
 
 class KalshiClient:
@@ -283,7 +284,7 @@ class ExchangeClient(KalshiClient):
         dictr = self.get(self.portfolio_url+'/balance')
         return dictr
 
-    def create_order(self,
+    async def create_order(self,
                         ticker:str,
                         client_order_id:str,
                         side:str,
