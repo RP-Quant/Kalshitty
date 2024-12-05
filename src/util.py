@@ -41,3 +41,6 @@ def get_month_day():
     month_code = current_date.strftime("%b")  # 3-letter month code
     day_code = current_date.strftime("%d")
     return month_code, day_code
+
+def get_digits(inp: str):
+    return int(''.join([i for i in inp if str.isdecimal(i)]))

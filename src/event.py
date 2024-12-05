@@ -10,24 +10,23 @@ from bisect import bisect_left
 import time
 
 class Event:
-    def __init__(self, ticker, exchange_client: ExchangeClient):
-        self.ticker = ticker
+    def __init__(self, market_tickers):
+        self.market_tickers = market_tickers # list of market tickers
         self.markets = {}
 
-        self.exchange_client = exchange_client
         self.seq = 1
         self.sid = 1
         self.id = 1
         self.auth_token = self.login()
         self.last_time = time.time()
-
-    def initialize(self):
-        event = self.exchange_client.get_event(self.ticker)
-        for market in event["markets"]:
-            self.markets[market["ticker"]] = {
+        
+        for market_ticker in market_tickers:
+            self.markets[market_ticker] = {
                 "yes" : [0]*100,
                 "no" : [0]*100
             }
+
+        self.mutex = asyncio.Lock()
         
         #pprint(self.markets)
 
@@ -47,7 +46,7 @@ class Event:
             print(f"Error during authentication: {e}")
             exit(1)
 
-    async def process_message(self, message):
+    def process_message(self, message):
         data = json.loads(message)
         #pprint(data)
         msg = data["msg"]
@@ -96,7 +95,10 @@ class Event:
                         message = await websocket.recv()
                         #print(f"Seconds elapsed: {time.time()-self.last_time}")
                         #self.last_time = time.time()
-                        if not await self.process_message(message):
+                        res = None
+                        async with self.mutex:
+                            res = self.process_message(message)
+                        if not res:
                             unsub = json.dumps({
                                 "id": self.id,
                                 "cmd": "unsubscribe",
@@ -135,10 +137,14 @@ class Event:
     async def get_data(self, ticker, side):
         try:
             i = 99
-            while self.markets[ticker][side][i] == 0 and i > 0:
-                i -= 1
-            #print(self.markets[ticker][side])
-            return self.markets[ticker][side][i], i+1
+            async with self.mutex:
+                while i >= 0 and self.markets[ticker][side][i] == 0:
+                    i -= 1
+                    
+                if i < 0:
+                    return None, None
+                else:
+                    return self.markets[ticker][side][i], i+1
         except Exception as e:
             print(e)
-            return -1, -1
+            return None, None
