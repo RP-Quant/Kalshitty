@@ -47,6 +47,9 @@ class Event:
             print(f"Error during authentication: {e}")
             exit(1)
 
+    def get_markets(self):
+        return list(self.markets.keys())
+
     async def process_message(self, message):
         data = json.loads(message)
         #pprint(data)
