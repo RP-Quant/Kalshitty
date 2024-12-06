@@ -3,10 +3,11 @@ from registry import Registry
 import asyncio
 import time
 from util import calc_fees, get_digits
+from KalshiClientV3 import ExchangeClient
 
-class Strategy(BaseStrategy):
-    def __init__(self, api_base: str, key_id: str, private_key, registry: Registry, event_tickers: list[str]):
-        super().__init__(api_base, key_id, private_key, registry, event_tickers)
+class Arbitrage(BaseStrategy):
+    def __init__(self, registry: Registry, event_tickers: list[str], client: ExchangeClient, registry_mutex: asyncio.Lock):
+        super().__init__(registry, event_tickers, client, registry_mutex)
         
         self.above_below_ticker = event_tickers[0] if event_tickers[0].startswith("KXBTCD-") else event_tickers[1]
         self.range_ticker = event_tickers[0] if event_tickers[0].startswith("KXBTC-") else event_tickers[1]
@@ -15,7 +16,7 @@ class Strategy(BaseStrategy):
         self.event_to_sorted_market_indices = {e : None for e in event_tickers} # event ticker -> list of ints
         self.index_to_market_ticker = {e : {} for e in event_tickers} # event ticker -> index int -> actual market ticker
 
-    async def strategy(self, client):
+    async def run(self):
         while True:
             async with self.mutex:
                 # Your strategy here
@@ -89,13 +90,21 @@ class Strategy(BaseStrategy):
                                 ab_start_unique_ticker = self.registry.data[self.above_below_ticker][ab_start_ticker]["unique_ticker"]
                                 ab_end_unique_ticker = self.registry.data[self.above_below_ticker][ab_end_ticker]["unique_ticker"]
 
-                                range_start_yes_price = self.registry.data[self.range_ticker][range_start_ticker]["yes_ask_price"]
-                                ab_start_yes_price = self.registry.data[self.above_below_ticker][ab_start_ticker]["yes_ask_price"]
-                                ab_end_yes_price = self.registry.data[self.above_below_ticker][ab_end_ticker]["yes_ask_price"]
+                                range_start_yes_price = self.registry.data[self.range_ticker][range_start_ticker]["yes_price"]
+                                ab_start_yes_price = self.registry.data[self.above_below_ticker][ab_start_ticker]["yes_price"]
+                                ab_end_yes_price = self.registry.data[self.above_below_ticker][ab_end_ticker]["yes_price"]
 
-                                range_start_no_price = self.registry.data[self.range_ticker][range_start_ticker]["no_ask_price"]
-                                ab_start_no_price = self.registry.data[self.above_below_ticker][ab_start_ticker]["no_ask_price"]
-                                ab_end_no_price = self.registry.data[self.above_below_ticker][ab_end_ticker]["no_ask_price"]
+                                range_start_no_price = self.registry.data[self.range_ticker][range_start_ticker]["no_price"]
+                                ab_start_no_price = self.registry.data[self.above_below_ticker][ab_start_ticker]["no_price"]
+                                ab_end_no_price = self.registry.data[self.above_below_ticker][ab_end_ticker]["no_price"]
+
+                                range_start_yes_volume = self.registry.data[self.range_ticker][range_start_ticker]["yes_volume"]
+                                ab_start_yes_volume = self.registry.data[self.above_below_ticker][ab_start_ticker]["yes_volume"]
+                                ab_end_yes_volume = self.registry.data[self.above_below_ticker][ab_end_ticker]["yes_volume"]
+
+                                range_start_no_volume = self.registry.data[self.range_ticker][range_start_ticker]["no_volume"]
+                                ab_start_no_volume = self.registry.data[self.above_below_ticker][ab_start_ticker]["no_volume"]
+                                ab_end_no_volume = self.registry.data[self.above_below_ticker][ab_end_ticker]["no_volume"]
 
                                 if range_start_yes_price is None or \
                                     ab_start_yes_price is None or \
@@ -108,37 +117,48 @@ class Strategy(BaseStrategy):
 
                                 # check sell buy buy and buy sell sell
 
+                                # buy = 100 - no price = buying yes
+                                # sell = 100 - yes price = buying no
+
                                 # sell buy buy:
-                                sbb_profit = (100 - ab_start_no_price) - ab_end_yes_price - range_start_yes_price
+                                sbb_profit = 100 - (100 - ab_start_yes_price) - (100 - ab_end_no_price) - (100 - range_start_no_price)
 
                                 # buy sell sell
-                                bss_profit = (100 - range_start_no_price) - (ab_start_yes_price - (100 - ab_end_no_price))
+                                bss_profit = 200 - (100 - ab_start_no_price) - (100 - ab_end_yes_price) - (100 - range_start_yes_price)
                                 # print(sbb_profit, bss_profit)
                                 if sbb_profit > 0:
                                     if len(best_orders) == 0 or sbb_profit > best_orders[0]:
-                                        best_orders = [sbb_profit, ("no", ab_start_unique_ticker, ab_start_no_price), ("yes", ab_end_unique_ticker, ab_end_yes_price), ("yes", range_unique_ticker, range_start_yes_price)]
+                                        best_orders = [sbb_profit, ("no", ab_start_unique_ticker, (100 - ab_start_yes_price), ab_start_yes_volume), ("yes", ab_end_unique_ticker, (100 - ab_end_no_price), ab_end_no_volume), ("yes", range_unique_ticker, (100 - range_start_no_price), range_start_no_volume)]
                                         print("sbb, profit:", sbb_profit, ab_start_no_price, ab_end_yes_price, range_start_yes_price, ab_start, ab_end)
+                                       
+                                        bid_price_abs = self.registry.data[self.above_below_ticker][ab_start_ticker]["no_bid_price"]
+                                        bid_price_abe = self.registry.data[self.above_below_ticker][ab_end_ticker]["yes_bid_price"]
+                                        bid_price_r = self.registry.data[self.range_ticker][range_start_ticker]["yes_bid_price"]
+                                        print("spread abs", ab_start_no_price - bid_price_abs)
+                                        print("spread abe", ab_end_yes_price - bid_price_abe)
+                                        print("spread range", range_start_yes_price - bid_price_r)
+
+
                                 
                                 elif bss_profit > 0:
                                     if len(best_orders) == 0 or bss_profit > best_orders[0]:
-                                        best_orders = [bss_profit, ("yes", ab_start_unique_ticker, ab_start_yes_price), ("no", ab_end_unique_ticker, ab_end_no_price), ("no", range_unique_ticker, range_start_no_price)]
+                                        best_orders = [bss_profit, ("yes", ab_start_unique_ticker, (100 - ab_start_no_price), ab_start_no_volume), ("no", ab_end_unique_ticker, (100 - ab_end_yes_price), ab_end_yes_volume), ("no", range_unique_ticker, (100 - range_start_yes_price), range_start_yes_volume)]
                                         print("bss, profit:", bss_profit, range_start_no_price, ab_start_yes_price, ab_end_no_price, ab_start)
+
+                                        bid_price_abs = self.registry.data[self.above_below_ticker][ab_start_ticker]["yes_bid_price"]
+                                        bid_price_abe = self.registry.data[self.above_below_ticker][ab_end_ticker]["no_bid_price"]
+                                        bid_price_r = self.registry.data[self.range_ticker][range_start_ticker]["no_bid_price"]
+                                        print("spread abs", ab_start_yes_price - bid_price_abs)
+                                        print("spread abe", ab_end_no_price - bid_price_abe)
+                                        print("spread range", range_start_no_price - bid_price_r)
                                 
                             else:
                                 raise ValueError("Range and above/below mismatch; check markets manually for alignment")
                         
                         if len(best_orders) > 0 and best_orders[0] > 2:
-                            ab_start_task = asyncio.create_task(self.get_volume(client, best_orders[1][1], best_orders[1][0]))
-                            ab_end_task = asyncio.create_task(self.get_volume(client, best_orders[2][1], best_orders[2][0]))
-                            range_start_task = asyncio.create_task(self.get_volume(client, best_orders[3][1], best_orders[3][0]))
+                            # get fees
 
-                            ab_start_volume = await ab_start_task
-                            ab_end_volume = await ab_end_task
-                            range_start_volume = await range_start_task
-
-                            # get volumes
-
-                            num_contracts = min(ab_start_volume, ab_end_volume, range_start_volume)
+                            num_contracts = min(best_orders[1][3], best_orders[2][3], best_orders[3][3])
                             total_fees = 0
 
                             total_fees += calc_fees(best_orders[1][2], num_contracts)
@@ -155,12 +175,12 @@ class Strategy(BaseStrategy):
                             for order in best_orders[1:]:
                                 if order[0] == "yes":
                                     print(time.time())
-                                    self.buy_yes_market_order(client=client, ticker=order[1], amount=1) #TODO: CHANGE TO num_contracts ONCE DONE TESTING
+                                    # self.buy_yes_market_order(client=client, ticker=order[1], amount=1) #TODO: CHANGE TO num_contracts ONCE DONE TESTING
                                 else:
                                     print(time.time())
-                                    self.buy_no_market_order(client=client, ticker=order[1], amount=1)
+                                    # self.buy_no_market_order(client=client, ticker=order[1], amount=1)
 
-                            print("volumes", ab_start_volume, ab_end_volume, range_start_volume)
+                            print("volumes", best_orders[1][3], best_orders[2][3], best_orders[3][3])
                             print("total profit:", "$" + str(total_profit))
                             print("amount staked:", "$" + str(total_cost))
                             print("percentage return:", str(round(total_profit / total_cost * 100, 2)) + "%")
