@@ -1,6 +1,6 @@
 from event import Event
 import asyncio
-from KalshiClientV3 import ExchangeClient
+from utils.KalshiClientV3 import ExchangeClient
 from registry import Registry
 import time
 

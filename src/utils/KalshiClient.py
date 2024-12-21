@@ -70,6 +70,7 @@ class KalshiClient:
         response = requests.post(
             self.host + path, data=body, headers=self.request_headers("POST", path)
         )
+        print(response.json())
         self.raise_if_bad_response(response)
         return response.json()
 
@@ -142,6 +143,7 @@ class KalshiClient:
     def raise_if_bad_response(self, response: requests.Response) -> None:
         #print(response.json())
         if response.status_code not in range(200, 299):
+            print(response.reason)
             raise HttpError(response.reason, response.status_code)
     
     def query_generation(self, params:dict) -> str:
@@ -284,7 +286,7 @@ class ExchangeClient(KalshiClient):
         dictr = self.get(self.portfolio_url+'/balance')
         return dictr
 
-    async def create_order(self,
+    def create_order(self,
                         ticker:str,
                         client_order_id:str,
                         side:str,
@@ -304,6 +306,7 @@ class ExchangeClient(KalshiClient):
         order_json = json.dumps(relevant_params)
         orders_url = self.portfolio_url + '/orders'
         result = self.fast_post(path = orders_url, body = order_json)
+        print(result)
         return result
 
     def batch_create_orders(self, 

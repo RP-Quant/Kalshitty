@@ -1,14 +1,21 @@
-import csv
+import yfinance as yf
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+from utils.util import Webscraper
+from utils.KalshiClient import ExchangeClient
+from config import API_BASE, KEY_ID
+from utils.util import load_private_key_from_file, filter_digits
+import math
+import asyncio
+from marketdata import Event
+import uuid
+from datetime import datetime, timedelta
 
-fieldnames = ["time"]
+private_key = load_private_key_from_file("src/kalshi.key")
 
-with open("btc_price_record.csv", "w", newline='', encoding="utf-8") as price_file, \
-         open("btc_pred30_record.csv", "w", newline='', encoding="utf-8") as pred30_file, \
-         open("btc_pred60_record.csv", "w", newline='', encoding="utf-8") as pred60_file:
-        
-        price_writer = csv.DictWriter(price_file, fieldnames=fieldnames)
-        price_writer.writeheader()
-        pred30_writer = csv.DictWriter(pred30_file, fieldnames=fieldnames)
-        pred30_writer.writeheader()
-        pred60_writer = csv.DictWriter(pred60_file, fieldnames=fieldnames)
-        pred60_writer.writeheader()
+ec = ExchangeClient(exchange_api_base=API_BASE, key_id=KEY_ID, private_key=private_key)
+
+order = {'ticker': 'KXBTCD-24DEC0617-T101749.99', 'client_order_id': str(uuid.uuid4()), 'type': 'market', 'action': 'buy', 'side': 'no', 'count': 10, 'expiration_ts': None, 'sell_position_floor': None, 'buy_max_cost': None}
+
+ec.create_order(**order)

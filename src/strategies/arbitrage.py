@@ -1,5 +1,10 @@
-from KalshiClientsBaseV2ApiKey import ExchangeClient
-from util import filter_digits, calc_fees, cut_down
+"""
+THIS IS DEPCRICATED CODE
+DO NOT USE UNLESS YOU WANT TO LOSE MONEY
+"""
+
+from utils.KalshiClient import ExchangeClient
+from utils.util import filter_digits, calc_fees, cut_down
 import uuid
 import time
 from pprint import pprint

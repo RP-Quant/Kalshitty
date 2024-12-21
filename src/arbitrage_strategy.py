@@ -2,8 +2,8 @@ from base_strategy import BaseStrategy
 from registry import Registry
 import asyncio
 import time
-from util import calc_fees, get_digits
-from KalshiClientV3 import ExchangeClient
+from utils.util import calc_fees, get_digits
+from utils.KalshiClientV3 import ExchangeClient
 
 class Arbitrage(BaseStrategy):
     def __init__(self, registry: Registry, event_tickers: list[str], client: ExchangeClient, registry_mutex: asyncio.Lock):

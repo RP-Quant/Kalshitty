@@ -1,10 +1,10 @@
-from util import filter_digits, calc_fees, cut_down
+from utils.util import filter_digits, calc_fees, cut_down
 import uuid
 import time
 import asyncio
 from registry import Registry
 from abc import ABC, abstractmethod
-from KalshiClientV3 import ExchangeClient
+from utils.KalshiClientV3 import ExchangeClient
 
 # base general strategy class
 

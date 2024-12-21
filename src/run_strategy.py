@@ -1,12 +1,12 @@
 from arbitrage_strategy import Arbitrage
 from config import KEY_ID
-from util import load_private_key_from_file
+from utils.util import load_private_key_from_file
 from datetime import datetime
 from pytz import timezone
 import time
 from registry import Registry
 import asyncio
-from KalshiClientV3 import ExchangeClient
+from utils.KalshiClientV3 import ExchangeClient
 from base_strategy import BaseStrategy
 from data_puller import DataPuller
 
