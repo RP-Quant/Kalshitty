@@ -4,8 +4,7 @@ import math
 import time
 from utils.KalshiClient import ExchangeClient
 from datacollection.DataListeners import EventListener
-from utils.util import load_private_key_from_file, filter_digits, get_month_day
-from config import KEY_ID, API_BASE
+from utils.util import filter_digits, get_month_day, get_hour
 from datetime import datetime
 import pandas as pd
 
@@ -13,8 +12,9 @@ class CryptoArbitrage:
     def __init__(self, api_base, key_id: str, private_key, auth_token, threshold, prod, mode, crypto, block_size):
         self.ticker = crypto
         month, day = get_month_day()
-        self.above_ticker = "KX" + self.ticker + "D-24" + month.upper() + str(day) + "10"
-        self.range_ticker = "KX" + self.ticker + "-24" + month.upper() + str(day) + "10"
+        hour = get_hour()
+        self.above_ticker = "KX" + self.ticker + "D-24" + month.upper() + str(day) + hour
+        self.range_ticker = "KX" + self.ticker + "-24" + month.upper() + str(day) + hour
         self.block_size = block_size
         self.prod = prod
         self.mode = mode

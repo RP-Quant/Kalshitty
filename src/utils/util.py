@@ -58,5 +58,11 @@ def get_month_day():
     day_code = current_date.strftime("%d")
     return month_code, day_code
 
+def get_hour():
+    hour = datetime.now().hour + 1
+    if hour < 10:
+        return "0"+str(hour)
+    return str(hour)
+
 def get_digits(inp: str):
     return int(''.join([i for i in inp if str.isdecimal(i)]))
