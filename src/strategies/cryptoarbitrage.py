@@ -9,7 +9,7 @@ from datetime import datetime
 import pandas as pd
 
 class CryptoArbitrage:
-    def __init__(self, api_base, key_id: str, private_key, auth_token, threshold, prod, mode, crypto, block_size):
+    def __init__(self, api_base, key_id: str, private_key, threshold, prod, mode, crypto, block_size):
         self.ticker = crypto
         month, day = get_month_day()
         hour = get_hour()
@@ -20,8 +20,8 @@ class CryptoArbitrage:
         self.mode = mode
 
         self.exchange_client = ExchangeClient(api_base, key_id, private_key)
-        self.above_event = EventListener(exchange_client=self.exchange_client, auth_token=auth_token, event_ticker=self.above_ticker)
-        self.range_event = EventListener(exchange_client=self.exchange_client, auth_token=auth_token, event_ticker=self.range_ticker)
+        self.above_event = EventListener(exchange_client=self.exchange_client, private_key = private_key, key_id=key_id, event_ticker=self.above_ticker)
+        self.range_event = EventListener(exchange_client=self.exchange_client, private_key = private_key, key_id=key_id, event_ticker=self.range_ticker)
 
         self.markets_arr = [{"above": None, "range": None} for _ in range(100)]
         self.balance = 0
@@ -174,9 +174,9 @@ class CryptoArbitrage:
                 pass
 
 class BTCArbitrage(CryptoArbitrage):
-    def __init__(self, api_base, key_id, private_key, auth_token, threshold, mode, prod):
-        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, auth_token=auth_token, threshold=threshold, prod=prod, mode = mode, crypto="BTC", block_size=500)
+    def __init__(self, api_base, key_id, private_key, threshold, mode, prod):
+        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, mode = mode, crypto="BTC", block_size=500)
 
 class ETHArbitrage(CryptoArbitrage):
-    def __init__(self, api_base, key_id, private_key, auth_token, threshold, mode, prod):
-        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, auth_token=auth_token, threshold=threshold, prod=prod, mode = mode, crypto="ETH", block_size=40)
+    def __init__(self, api_base, key_id, private_key, threshold, mode, prod):
+        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, mode = mode, crypto="ETH", block_size=40)

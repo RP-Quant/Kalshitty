@@ -1,4 +1,4 @@
-from src.config import API_BASE, KEY_ID, EMAIL, PASSWORD
+from config import API_BASE, KEY_ID, EMAIL, PASSWORD
 from src.utils.util import load_private_key_from_file
 import requests
 from src.utils.KalshiClient import ExchangeClient
@@ -23,8 +23,8 @@ def login():
 
 private_key = load_private_key_from_file("src/kalshi.key")
 client = ExchangeClient(exchange_api_base=API_BASE, key_id=KEY_ID, private_key=private_key)
-token = login()
+#token = login()
 
 #listener = MarketListener(auth_token=token, market_ticker="KXSECVA-26DEC31-DC")
-listener = EventListener(exchange_client=client, auth_token=token, event_ticker="KXBTCD-24DEC0917")
+listener = EventListener(exchange_client=client, auth_token="", event_ticker="BTCMINY-24DEC31")
 asyncio.run(listener.start_listen())

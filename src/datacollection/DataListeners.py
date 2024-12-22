@@ -4,24 +4,62 @@ import asyncio
 from utils.KalshiClient import ExchangeClient
 from config import WEBSOCKET_ENDPOINT
 from pprint import pprint
+from datetime import datetime
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.exceptions import InvalidSignature
+import base64
+
 
 class KalshiWebsocketClient:
-    def __init__(self, auth_token: str):
-        self.auth_token = auth_token
+    def __init__(self, private_key: rsa.RSAPrivateKey, key_id):
         self.websocket = None
         self.lock = asyncio.Lock()
         self.id = 1
         self.sid = 1
+        self.private_key = private_key
+        self.key_id = key_id
 
         self.websocket_endpoint = WEBSOCKET_ENDPOINT
+
+    def sign_pss_text(self, text: str) -> str:
+        # Before signing, we need to hash our message.
+        # The hash is what we actually sign.
+        # Convert the text to bytes
+        message = text.encode('utf-8')
+        try:
+            signature = self.private_key.sign(
+                message,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.DIGEST_LENGTH
+                ),
+                hashes.SHA256()
+            )
+            return base64.b64encode(signature).decode('utf-8')
+        except InvalidSignature as e:
+            raise ValueError("RSA sign PSS failed") from e
 
     async def connect(self):
         """Connect to WebSocket and establish the connection."""
         if self.websocket is not None:
             print("Already connected!")
             return
-        
-        headers = {"Authorization": f"Bearer {self.auth_token}"}
+        current_time = datetime.now()
+        timestamp = current_time.timestamp()
+        current_time_milliseconds = int(timestamp * 1000)
+        timestampt_str = str(current_time_milliseconds)
+
+        msg_string = timestampt_str + "GET" + '/trade-api/ws/v2'
+        signature = self.sign_pss_text(msg_string)
+
+        headers = {"Content-Type": "application/json"}
+        headers["KALSHI-ACCESS-KEY"] = self.key_id
+        headers["KALSHI-ACCESS-SIGNATURE"] = signature
+        headers["KALSHI-ACCESS-TIMESTAMP"] = timestampt_str
+
         try:
             self.websocket = await websockets.connect(self.websocket_endpoint, additional_headers=headers)
             print("WebSocket connection established.")
@@ -59,8 +97,8 @@ class KalshiWebsocketClient:
             print(f"Unsubscription message recieved: {message}")
 
 class MarketListener(KalshiWebsocketClient):
-    def __init__(self, auth_token: str, market_ticker: str):
-        super().__init__(auth_token=auth_token)
+    def __init__(self, private_key, key_id, market_ticker: str):
+        super().__init__(private_key=private_key, key_id=key_id)
         self.market_ticker = market_ticker
 
         self.seq = 0
@@ -148,8 +186,8 @@ class MarketListener(KalshiWebsocketClient):
             return self.orderbook
 
 class EventListener(KalshiWebsocketClient):
-    def __init__(self, exchange_client: ExchangeClient, auth_token: str, event_ticker: str):
-        super().__init__(auth_token=auth_token)
+    def __init__(self, exchange_client: ExchangeClient, private_key, key_id, event_ticker: str):
+        super().__init__(private_key=private_key, key_id=key_id)
         self.exchange_client = exchange_client
         self.event_ticker = event_ticker
 
