@@ -106,8 +106,8 @@ class CryptoArbitrage:
                         if self.prod:
                             orders = min(orders, self.balance//(above_sell_price + above_buy_price + range_buy_price))
                         if orders > 0 and above_sell_price + above_buy_price + range_buy_price < 100:
-                            print(f"SBB Arbitrage found on {self.ticker} at {datetime.now().strftime("%H:%M:%S")}. Profit: {100 - (above_sell_price + above_buy_price + range_buy_price)}, Orders: {orders}")
-                            print(f"{self.markets_arr[i]["above"]} : {above_sell_price}\n{self.markets_arr[i+1]["above"]} : {above_buy_price}\n{self.markets_arr[i]["range"]} : {range_buy_price}")
+                            print(f"SBB Arbitrage found on {self.ticker}. Profit: {100 - (above_sell_price + above_buy_price + range_buy_price)}, Orders: {orders}")
+                            print(f"{self.markets_arr[i]['above']} : {above_sell_price}\n{self.markets_arr[i+1]['above']} : {above_buy_price}\n{self.markets_arr[i]['range']} : {range_buy_price}")
                             if 100 - (above_sell_price + above_buy_price + range_buy_price) >= self.profit_threshold:
                                 if self.prod:
                                     print("Making orders")
@@ -129,7 +129,7 @@ class CryptoArbitrage:
                         if self.prod:
                             orders = min(orders, self.balance//(above_buy_price + above_sell_price + range_sell_price))
                         if orders > 0 and (above_buy_price + above_sell_price + range_sell_price) < 200:
-                            print(f"BSS Arbitrage found on {self.ticker} at {datetime.now().strftime("%H:%M:%S")}. Profit: {200 - (above_buy_price + above_sell_price + range_sell_price)}, Orders: {orders}")
+                            print(f"BSS Arbitrage found on {self.ticker}. Profit: {200 - (above_buy_price + above_sell_price + range_sell_price)}, Orders: {orders}")
                             if 200 - (above_buy_price + above_sell_price + range_sell_price) >= self.profit_threshold:
                                 if self.prod:
                                     response = await self.make_orders([

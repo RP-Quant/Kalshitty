@@ -4,7 +4,7 @@ class Registry:
     def __init__(self) -> None:
         self.data = {}
         self.balance = 0
-        self.last_data_recv_ts = None
+        self.last_data_recv_ts = time.time()
         self.freshness_threshold = 0.05 # data should be received 50 ms ago max to be fresh
 
         # data model:

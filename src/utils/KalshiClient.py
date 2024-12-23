@@ -35,6 +35,7 @@ class KalshiClient:
         self.private_key = private_key
         self.user_id = user_id
         self.last_api_call = datetime.now()
+        self.version = "V2"
 
     """Built in rate-limiter. We STRONGLY encourage you to keep 
     some sort of rate limiting, just in case there is a bug in your 
