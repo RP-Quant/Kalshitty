@@ -1,30 +1,25 @@
-from config import API_BASE, KEY_ID, EMAIL, PASSWORD
-from src.utils.util import load_private_key_from_file
-import requests
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 from src.utils.KalshiClient import ExchangeClient
 from DataListeners import MarketListener, EventListener
 import asyncio
 
-def login():
-    try:
-        r = requests.post(
-            "https://trading-api.kalshi.com/trade-api/v2/login",
-            json={"email": EMAIL, "password": PASSWORD}
+def load_private_key_from_file(file_path):
+    with open(file_path, "rb") as key_file:
+        private_key = serialization.load_pem_private_key(
+            key_file.read(),
+            password=None,  # or provide a password if your key is encrypted
+            backend=default_backend()
         )
-        r.raise_for_status()  # Raise exception for HTTP errors
-        response = r.json()
-        token = response.get("token")
-        if not token:
-            raise ValueError("No token in response")
-        return token
-    except Exception as e:
-        print(f"Error during authentication: {e}")
-        exit(1)
+    return private_key
+
+API_BASE = "https://api.elections.kalshi.com/trade-api/v2"
+KEY_ID = "aab7962b-a788-4f1b-8b7d-5f8c9bc4a7f9"
 
 private_key = load_private_key_from_file("src/kalshi.key")
 client = ExchangeClient(exchange_api_base=API_BASE, key_id=KEY_ID, private_key=private_key)
 #token = login()
 
 #listener = MarketListener(auth_token=token, market_ticker="KXSECVA-26DEC31-DC")
-listener = EventListener(exchange_client=client, auth_token="", event_ticker="BTCMINY-24DEC31")
+listener = EventListener(exchange_client=client, auth_token="", event_ticker="KXBTC-24DEC2219")
 asyncio.run(listener.start_listen())

@@ -7,6 +7,7 @@ from datacollection.DataListeners import EventListener
 from utils.util import filter_digits, get_month_day, get_hour
 from datetime import datetime
 import pandas as pd
+import traceback
 
 class CryptoArbitrage:
     def __init__(self, api_base, key_id: str, private_key, threshold, prod, mode, crypto, block_size):
@@ -52,18 +53,13 @@ class CryptoArbitrage:
                 self.markets_arr[i - min_idx]["above"] = above_dict[i]
             if i in range_dict:
                 self.markets_arr[i - min_idx]["range"] = range_dict[i]
-
+        print(above_markets, range_markets)
         print("Markets set!")
 
     def get_markets(self):
         return self.above_event.get_markets() + self.range_event.get_markets()
 
     def make_orders(self, orders_to_make):
-        #async with self.lock:  # Ensure only one make_orders execution
-        if not orders_to_make:
-            print("No opportunities found.")
-            return
-
         # Function to generate order parameters
         def get_order(ticker, amount, side):
             return {'ticker':ticker,
@@ -96,7 +92,7 @@ class CryptoArbitrage:
                 if self.lock.locked():  # Pause scanning if make_orders is running
                     await asyncio.sleep(0.1)
                     continue
-
+                #print("scanning")
                 for i in range(99):
                     if not (self.markets_arr[i]["above"] and self.markets_arr[i]["range"] and self.markets_arr[i + 1]["above"]):
                         continue
@@ -111,6 +107,7 @@ class CryptoArbitrage:
                             orders = min(orders, self.balance//(above_sell_price + above_buy_price + range_buy_price))
                         if orders > 0 and above_sell_price + above_buy_price + range_buy_price < 100:
                             print(f"SBB Arbitrage found on {self.ticker} at {datetime.now().strftime("%H:%M:%S")}. Profit: {100 - (above_sell_price + above_buy_price + range_buy_price)}, Orders: {orders}")
+                            print(f"{self.markets_arr[i]["above"]} : {above_sell_price}\n{self.markets_arr[i+1]["above"]} : {above_buy_price}\n{self.markets_arr[i]["range"]} : {range_buy_price}")
                             if 100 - (above_sell_price + above_buy_price + range_buy_price) >= self.profit_threshold:
                                 if self.prod:
                                     print("Making orders")
@@ -145,7 +142,7 @@ class CryptoArbitrage:
 
                 await asyncio.sleep(0.01)
         except Exception as e:
-            print(f"Scan error: {e}")
+            print(f"Scan error: {traceback.print_exc()}")
 
     async def run(self):
         self.set_markets()
@@ -175,7 +172,7 @@ class CryptoArbitrage:
 
 class BTCArbitrage(CryptoArbitrage):
     def __init__(self, api_base, key_id, private_key, threshold, mode, prod):
-        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, mode = mode, crypto="BTC", block_size=500)
+        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, mode = mode, crypto="BTC", block_size=250)
 
 class ETHArbitrage(CryptoArbitrage):
     def __init__(self, api_base, key_id, private_key, threshold, mode, prod):

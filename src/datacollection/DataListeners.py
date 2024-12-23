@@ -128,10 +128,9 @@ class MarketListener(KalshiWebsocketClient):
                     if seq != self.seq+1:
                         print("Datastream out of order.")
                         return False
-                    
                     self.orderbook[data['side']][data['price']] += data['delta']
                     self.seq = seq
-                    print("Internal orderbook updated with delta")
+                    #print("Internal orderbook updated with delta")
 
         return True
 
@@ -166,12 +165,13 @@ class MarketListener(KalshiWebsocketClient):
 
     async def get_ask(self, side):
         i = 99
-        side = "yes" if side == "no" else "yes"
+        side = "yes" if side == "no" else "no"
+        print(side)
         async with self.lock:
             while self.orderbook[side][i] == 0 and i > 0:
                 i -= 1
             #print(self.markets[ticker][side])
-            return 100-self.orderbook[side][side][i], i+1
+            return self.orderbook[side][i], 100-i
     
     async def get_bid(self, side):
         i = 99
@@ -179,7 +179,7 @@ class MarketListener(KalshiWebsocketClient):
             while self.orderbook[side][i] == 0 and i > 0:
                 i -= 1
             #print(self.markets[ticker][side])
-            return self.orderbook[side][side][i], i+1
+            return self.orderbook[side][i], i
         
     async def get_snapshot(self):
         async with self.lock:
@@ -218,7 +218,7 @@ class EventListener(KalshiWebsocketClient):
                     for price, orders in data.get('no', []):
                         self.orderbooks[ticker]['no'][price] = orders
                     print(f"Internal orderbook for {ticker} set to snapshot")
-                    #pprint(self.orderbooks[ticker])
+                    pprint(self.orderbooks[ticker])
 
                 case "orderbook_delta":
                     if seq != self.seq+1:
@@ -271,20 +271,20 @@ class EventListener(KalshiWebsocketClient):
             data[market] = await self.get_ask(side, market)
             print(market, data[market])
         return data
-
-    async def get_ask(self, side, market):
+        
+    async def get_ask(self, market, side):
         i = 99
-        side = "yes" if side == "no" else "yes"
+        side = "yes" if side == "no" else "no"
         async with self.lock:
             while self.orderbooks[market][side][i] == 0 and i > 0:
                 i -= 1
             #print(self.markets[ticker][side])
-            return 100-self.orderbooks[market][side][i], i+1
+            return self.orderbooks[market][side][i], 100-i
     
-    async def get_bid(self, side, market):
+    async def get_bid(self, market, side):
         i = 99
         async with self.lock:
             while self.orderbooks[market][side][i] == 0 and i > 0:
                 i -= 1
             #print(self.markets[ticker][side])
-            return self.orderbooks[market][side][side][i], i+1
+            return self.orderbooks[market][side][i], i
