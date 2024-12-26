@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.exceptions import InvalidSignature
 import base64
 import asyncio
-import aiohttp
+#import aiohttp
 import time
 
 class KalshiClient:

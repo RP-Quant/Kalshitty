@@ -6,7 +6,6 @@ import re
 import math
 from datetime import datetime
 import requests
-from config import EMAIL, PASSWORD
 
 def load_private_key_from_file(file_path):
     with open(file_path, "rb") as key_file:
@@ -19,21 +18,7 @@ def load_private_key_from_file(file_path):
 
 def filter_digits(input_string):
     return float(''.join(re.findall(r'[\d.]', input_string)))
-def login():
-    try:
-        r = requests.post(
-            "https://api.elections.kalshi.com/trade-api/v2/login",
-            json={"email": EMAIL, "password": PASSWORD}
-        )
-        r.raise_for_status()  # Raise exception for HTTP errors
-        response = r.json()
-        token = response.get("token")
-        if not token:
-            raise ValueError("No token in response")
-        return token
-    except Exception as e:
-        print(f"Error during authentication: {e}")
-        exit(1)
+
 class Webscraper:
     def __init__(self):
         options = webdriver.ChromeOptions()

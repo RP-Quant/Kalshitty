@@ -218,7 +218,7 @@ class EventListener(KalshiWebsocketClient):
                     for price, orders in data.get('no', []):
                         self.orderbooks[ticker]['no'][price] = orders
                     print(f"Internal orderbook for {ticker} set to snapshot")
-                    pprint(self.orderbooks[ticker])
+                    #pprint(self.orderbooks[ticker])
 
                 case "orderbook_delta":
                     if seq != self.seq+1:

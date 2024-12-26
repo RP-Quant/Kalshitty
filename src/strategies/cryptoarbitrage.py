@@ -59,7 +59,7 @@ class CryptoArbitrage:
     def get_markets(self):
         return self.above_event.get_markets() + self.range_event.get_markets()
 
-    def make_orders(self, orders_to_make):
+    async def make_orders(self, orders_to_make):
         # Function to generate order parameters
         def get_order(ticker, amount, side):
             return {'ticker':ticker,
@@ -67,15 +67,17 @@ class CryptoArbitrage:
                     'type':'market',
                     'action':'buy',
                     'side':side,
-                    'count':5,
+                    'count':amount,
                     'expiration_ts':None,
                     'sell_position_floor':None,
                     'buy_max_cost':None}
-            
-        for ticker, amount, side in orders_to_make:
-            order = get_order(ticker, amount, side)
-            print(order)
-            self.exchange_client.create_order(**order)
+        
+        result = await self.exchange_client.create_orders([get_order(order, amount, side) for order, amount, side in orders_to_make])
+        print(result)
+        # for ticker, amount, side in orders_to_make:
+        #     order = get_order(ticker, amount, side)
+        #     print(order)
+        #     asyncio.create_task(self.exchange_client.create_order(**order))
 
         #await asyncio.gather(*tasks)
 
@@ -101,10 +103,10 @@ class CryptoArbitrage:
                         above_sell, above_sell_price = await self.above_event.get_ask(self.markets_arr[i]["above"], "no")
                         above_buy, above_buy_price = await self.above_event.get_ask(self.markets_arr[i + 1]["above"], "yes")
                         range_buy, range_buy_price = await self.range_event.get_ask(self.markets_arr[i]["range"], "yes")
-
+                        #print(f"{self.markets_arr[i]["above"]} : {above_sell_price}\n{self.markets_arr[i+1]["above"]} : {above_buy_price}\n{self.markets_arr[i]["range"]} : {range_buy_price}")
                         orders = min(above_sell, above_buy, range_buy)
                         if self.prod:
-                            orders = min(orders, self.balance//(above_sell_price + above_buy_price + range_buy_price))
+                            orders = min(orders, (self.balance-100)//(above_sell_price + above_buy_price + range_buy_price))
                         if orders > 0 and above_sell_price + above_buy_price + range_buy_price < 100:
                             print(f"SBB Arbitrage found on {self.ticker} at {datetime.now().strftime("%H:%M:%S")}. Profit: {100 - (above_sell_price + above_buy_price + range_buy_price)}, Orders: {orders}")
                             print(f"{self.markets_arr[i]["above"]} : {above_sell_price}\n{self.markets_arr[i+1]["above"]} : {above_buy_price}\n{self.markets_arr[i]["range"]} : {range_buy_price}")
@@ -116,7 +118,7 @@ class CryptoArbitrage:
                                         (self.markets_arr[i+1]["above"], orders, "yes"),
                                         (self.markets_arr[i]["range"], orders, "yes"),
                                     ])
-                                    print(response.json())
+                                    #print(response.json())
                                     print("Orders made")
                                     break
 
@@ -172,8 +174,8 @@ class CryptoArbitrage:
 
 class BTCArbitrage(CryptoArbitrage):
     def __init__(self, api_base, key_id, private_key, threshold, mode, prod):
-        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, mode = mode, crypto="BTC", block_size=250)
+        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, mode = mode, crypto="BTC", block_size=500)
 
 class ETHArbitrage(CryptoArbitrage):
     def __init__(self, api_base, key_id, private_key, threshold, mode, prod):
-        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, mode = mode, crypto="ETH", block_size=40)
+        super().__init__(api_base=api_base, key_id=key_id, private_key=private_key, threshold=threshold, prod=prod, mode = mode, crypto="ETH", block_size=20)
