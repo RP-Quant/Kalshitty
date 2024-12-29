@@ -1,4 +1,4 @@
-from event import Event
+# from event import Event
 import asyncio
 from utils.KalshiClientV3 import ExchangeClient
 from registry import Registry

@@ -30,7 +30,7 @@ class Webscraper:
         self.driver.get(endpoint)
         return filter_digits(self.driver.find_element(By.CSS_SELECTOR, r'span.text-sm.font-semibold.tabular-nums.md\:text-2xl').text)
     
-def calc_fees(chance, num_contracts): # returns in USD, not cents
+def calc_fees(chance, num_contracts): # returns in cents
     return math.ceil((chance/100)*(1-chance/100)*num_contracts*0.07*100)/100
 
 def cut_down(num):
@@ -51,3 +51,14 @@ def get_hour():
 
 def get_digits(inp: str):
     return int(''.join([i for i in inp if str.isdecimal(i)]))
+
+def get_BTC_http():
+    raw = requests.get("https://www.cfbenchmarks.com/data/indices/BRTI").text
+    loc = raw.index("$")
+    end = loc + 1
+    while str.isdecimal(raw[end]) or raw[end] == '.' or raw[end] == ",":
+        end += 1
+    
+    out = raw[loc + 1 : end]
+    out = int(''.join([i for i in out if i != "," and i != "."]))
+    return out / 100
