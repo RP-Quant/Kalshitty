@@ -67,6 +67,7 @@ class KalshiWebsocketClient:
             print(f"Failed to connect to WebSocket: {e}")
     
     async def subscribe(self, msg):
+        await asyncio.sleep(2)
         if self.websocket is None:
             raise RuntimeError("WebSocket is not connected. Call connect() first.")
         print(msg)
@@ -92,9 +93,9 @@ class KalshiWebsocketClient:
             })
             self.id += 1
             await self.websocket.send(msg)
-            print(f"Sent unsubscription message: {msg}")
+            # print(f"Sent unsubscription message: {msg}")
             message = await self.websocket.recv()
-            print(f"Unsubscription message recieved: {message}")
+            # print(f"Unsubscription message recieved: {message}")
 
 class MarketListener(KalshiWebsocketClient):
     def __init__(self, private_key, key_id, market_ticker: str):
@@ -121,8 +122,8 @@ class MarketListener(KalshiWebsocketClient):
                         self.orderbook['yes'][price] = orders
                     for price, orders in data.get('no', []):
                         self.orderbook['no'][price] = orders
-                    print("Internal orderbook set to snapshot")
-                    pprint(self.orderbook)
+                    # print("Internal orderbook set to snapshot")
+                    # pprint(self.orderbook)
 
                 case "orderbook_delta":
                     if seq != self.seq+1:
@@ -203,6 +204,14 @@ class EventListener(KalshiWebsocketClient):
                 "no" : [0]*100
             }
 
+    async def get_markets_async(self):
+        event = await self.exchange_client.get_event(self.event_ticker)
+        for market in event["markets"]:
+            self.orderbooks[market["ticker"]] = {
+                "yes" : [0]*100,
+                "no" : [0]*100
+            }
+
     async def process_message(self, message):
         type = message['type']
         data = message['msg']
@@ -217,8 +226,8 @@ class EventListener(KalshiWebsocketClient):
                         self.orderbooks[ticker]['yes'][price] = orders
                     for price, orders in data.get('no', []):
                         self.orderbooks[ticker]['no'][price] = orders
-                    print(f"Internal orderbook for {ticker} set to snapshot")
-                    #pprint(self.orderbooks[ticker])
+                    # print(f"Internal orderbook for {ticker} set to snapshot")
+                    # pprint(self.orderbooks[ticker])
 
                 case "orderbook_delta":
                     if seq != self.seq+1:
@@ -232,7 +241,11 @@ class EventListener(KalshiWebsocketClient):
         return True
 
     async def start_listen(self):
-        self.get_markets()
+        if self.exchange_client.version == "V2":
+            self.get_markets()
+        else:
+            await self.get_markets_async()
+
         if not self.websocket:
             await self.connect()
         if self.websocket is None:
@@ -267,9 +280,9 @@ class EventListener(KalshiWebsocketClient):
     async def get_snapshot(self, side):
         data = {}
         for market in self.get_market_tickers():
-            print(f"recording for {market}")
-            data[market] = await self.get_ask(side, market)
-            print(market, data[market])
+            # print(f"recording for {market}")
+            data[market] = await self.get_ask(market, side)
+            # print(market, data[market])
         return data
         
     async def get_ask(self, market, side):

@@ -35,6 +35,7 @@ class KalshiClient:
         self.private_key = private_key
         self.user_id = user_id
         self.last_api_call = datetime.now()
+        self.version = "V2"
 
     """Built in rate-limiter. We STRONGLY encourage you to keep 
     some sort of rate limiting, just in case there is a bug in your 
@@ -306,32 +307,8 @@ class ExchangeClient(KalshiClient):
         order_json = json.dumps(relevant_params)
         orders_url = self.portfolio_url + '/orders'
         result = self.fast_post(path = orders_url, body = order_json)
+        print(result)
         return result
-    
-    async def create_orders(self, orders_to_make: List[dict]):
-        async def create_single_order(order_params):
-            try:
-                return await self.create_order(
-                    ticker=order_params['ticker'],
-                    client_order_id=order_params['client_order_id'],
-                    side=order_params['side'],
-                    action=order_params['action'],
-                    count=order_params['count'],
-                    type=order_params['type'],
-                    yes_price=order_params.get('yes_price'),
-                    no_price=order_params.get('no_price'),
-                    expiration_ts=order_params.get('expiration_ts'),
-                    sell_position_floor=order_params.get('sell_position_floor'),
-                    buy_max_cost=order_params.get('buy_max_cost')
-                )
-            except Exception as e:
-                return {"error": str(e), "order_params": order_params}
-
-        tasks = [create_single_order(order) for order in orders_to_make]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        return results
-
 
     def batch_create_orders(self, 
                                 orders:list

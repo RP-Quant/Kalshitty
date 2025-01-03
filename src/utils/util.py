@@ -6,6 +6,7 @@ import re
 import math
 from datetime import datetime
 import requests
+from config import EMAIL, PASSWORD
 
 def load_private_key_from_file(file_path):
     with open(file_path, "rb") as key_file:
@@ -18,7 +19,22 @@ def load_private_key_from_file(file_path):
 
 def filter_digits(input_string):
     return float(''.join(re.findall(r'[\d.]', input_string)))
-
+def login():
+    try:
+        r = requests.post(
+            "https://api.elections.kalshi.com/trade-api/v2/login",
+            json={"email": EMAIL, "password": PASSWORD}
+        )
+        r.raise_for_status()  # Raise exception for HTTP errors
+        response = r.json()
+        token = response.get("token")
+        print('sdfkljsdfkldsjflkdsjfkldsjfkldsjfkljsdfklsj')
+        if not token:
+            raise ValueError("No token in response")
+        return token
+    except Exception as e:
+        print(f"Error during authentication: {e}")
+        exit(1)
 class Webscraper:
     def __init__(self):
         options = webdriver.ChromeOptions()
@@ -30,7 +46,7 @@ class Webscraper:
         self.driver.get(endpoint)
         return filter_digits(self.driver.find_element(By.CSS_SELECTOR, r'span.text-sm.font-semibold.tabular-nums.md\:text-2xl').text)
     
-def calc_fees(chance, num_contracts): # returns in cents
+def calc_fees(chance, num_contracts): # returns in usd
     return math.ceil((chance/100)*(1-chance/100)*num_contracts*0.07*100)/100
 
 def cut_down(num):
@@ -51,14 +67,3 @@ def get_hour():
 
 def get_digits(inp: str):
     return int(''.join([i for i in inp if str.isdecimal(i)]))
-
-def get_BTC_http():
-    raw = requests.get("https://www.cfbenchmarks.com/data/indices/BRTI").text
-    loc = raw.index("$")
-    end = loc + 1
-    while str.isdecimal(raw[end]) or raw[end] == '.' or raw[end] == ",":
-        end += 1
-    
-    out = raw[loc + 1 : end]
-    out = int(''.join([i for i in out if i != "," and i != "."]))
-    return out / 100

@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.exceptions import InvalidSignature
 import base64
 import asyncio
-#import aiohttp
+import aiohttp
 import time
 
 class KalshiClient:
@@ -23,7 +23,8 @@ class KalshiClient:
         host: str,
         key_id: str,
         private_key: rsa.RSAPrivateKey,
-        user_id: Optional[str] = None,
+        session: aiohttp.ClientSession,
+        user_id: Optional[str] = None
     ):
         """Initializes the client and logs in the specified user.
         Raises an HttpError if the user could not be authenticated.
@@ -33,7 +34,7 @@ class KalshiClient:
         self.key_id = key_id
         self.private_key = private_key
         self.user_id = user_id
-        self.session = aiohttp.ClientSession()
+        self.session = session
 
         self.get_requests = [0, time.time()]
         self.post_requests = [0, time.time()]
@@ -41,6 +42,7 @@ class KalshiClient:
 
         self.get_limit = 10 # limit per second
         self.post_limit = 10 # limit per second
+        self.version = "V3"
 
     async def __aenter__(self):
         return self
@@ -200,11 +202,13 @@ class ExchangeClient(KalshiClient):
     def __init__(self, 
                     exchange_api_base: str,
                     key_id: str, 
-                    private_key: rsa.RSAPrivateKey):
+                    private_key: rsa.RSAPrivateKey,
+                    session: aiohttp.ClientSession):
         super().__init__(
             exchange_api_base,
             key_id,
             private_key,
+            session
         )
         self.key_id = key_id
         self.private_key = private_key

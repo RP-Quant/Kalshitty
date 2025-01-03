@@ -7,12 +7,12 @@ from pandas import DataFrame
 import pandas as pd
 
 class CryptoRecorder:
-    def __init__(self, api_base, key_id: str, private_key):
+    def __init__(self, api_base, key_id: str, private_key, auth_token):
         month, day = get_month_day()
         self.ticker = "KX" + "BTC" + "D-24" + month.upper() + str(day) + "12"
 
         self.exchange_client = ExchangeClient(api_base, key_id, private_key)
-        self.event = EventListener(exchange_client=self.exchange_client, private_key=private_key, key_id=key_id, event_ticker=self.ticker)
+        self.event = EventListener(exchange_client=self.exchange_client, auth_token=auth_token, event_ticker=self.ticker)
         self.webscraper = Webscraper()
         self.df = None
 
@@ -20,10 +20,9 @@ class CryptoRecorder:
         self.df = DataFrame(columns=["time", "BTC"] + list(self.event.get_market_tickers()))
 
     async def start_record(self):
-        print("Starting recording...")
         while True:
-            print(datetime.now().second)
-            if datetime.now().second == 0 and datetime.now().hour==10:
+            #print(datetime.now().second)
+            if datetime.now().second == 0 and datetime.now().hour==11:
                 print("recording...")
                 data_raw = await self.event.get_snapshot("yes")
                 data = {"time": datetime.now(),
@@ -33,7 +32,7 @@ class CryptoRecorder:
                 print(data)
                 self.df = pd.concat([self.df, pd.DataFrame([data])], ignore_index=True)
             if datetime.now().hour>11:
-                self.df.to_csv("src/records/DEC2411.csv")
+                self.df.to_csv("src/records/DEC2010.csv")
                 print("Ending collection")
                 break
             await asyncio.sleep(1)
